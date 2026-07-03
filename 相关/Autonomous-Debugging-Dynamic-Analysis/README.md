@@ -11,7 +11,7 @@
 
 该研究提出了Agent-centric Debugging Interface (ADI)，旨在增强自主Agent的程序修复能力。ADI不依赖传统的逐行调试器交互，而是实现"使用Frame Lifetime Trace技术的函数级交互范式"。
 
-## 科技界方法
+## 核心方法
 
 1. **函数级交互**: 传统的逐行调试 vs 函数级抽象
 2. **Frame Lifetime Trace**: 捕获函数生命周期的trace技术

@@ -1,31 +1,28 @@
 # 最相关论文阅读指南
 
-这个 README 只解释 **`最相关/` 目录下真实存在的 6 篇论文**。
+这个 README 解释 **`最相关/` 目录下的 7 篇论文**。
 
-注意：从方法价值上看，`PROTEA` 是全仓库 P0 第 1 篇，但它的物理目录目前在：
-
-```text
-../高度相关/PROTEA-Offline-Evaluation/
-```
-
-所以这里不把 PROTEA 算进 `最相关/` 目录数量，避免目录和 README 不一致。
+现在口径统一：`PROTEA` 就是最相关，物理目录也已经放到 `最相关/PROTEA-Offline-Evaluation/`。
 
 ---
 
-## 这个目录里有哪 6 篇
+## 这个目录里有哪 7 篇
 
 | 顺序 | 论文 | 核心作用 | 阅读优先级 |
 |---|---|---|---|
-| 1 | [REFLECT: Silent Failure Attribution](REFLECT-Silent-Failure-Attribution/) | trace 正常结束但结果错，如何定位关键错误步骤 | 最高 |
-| 2 | [From Confident Closing to Silent Failure](False-Success-Silent-Failure/) | Agent 自信说完成了，但环境状态没完成，如何识别 false success | 最高 |
-| 3 | [AgentRx: Diagnosing Agent Failures](AgentRx-Diagnosing-Agent-Failures/) | 把轨迹转成约束检查，发现 state / schema / protocol 违反 | 最高 |
-| 4 | [ErrorProbe: Self-Improving Diagnosis](ErrorProbe-Self-Improving-Diagnosis/) | 把失败变成可检测症状，再反向追踪和验证 | 高 |
-| 5 | [AgentTrace: Causal Graph Tracing](AgentTrace-Causal-Graph-Tracing/) | 显性错误场景下，用因果图做反向根因追踪 | 中 |
-| 6 | [XAI for Coding Agent Failures](XAI-Coding-Agent-Failures/) | 把 trace 解释成人能看懂的诊断报告 | 中 |
+| 1 | [PROTEA: Offline Evaluation](PROTEA-Offline-Evaluation/) | 中间节点期望 + 中间输出评分，最适合 WorkState 少字段、流程跳步 | 最高 |
+| 2 | [REFLECT: Silent Failure Attribution](REFLECT-Silent-Failure-Attribution/) | trace 正常结束但结果错，如何定位关键错误步骤 | 最高 |
+| 3 | [From Confident Closing to Silent Failure](False-Success-Silent-Failure/) | Agent 自信说完成了，但环境状态没完成，如何识别 false success | 最高 |
+| 4 | [AgentRx: Diagnosing Agent Failures](AgentRx-Diagnosing-Agent-Failures/) | 把轨迹转成约束检查，发现 state / schema / protocol 违反 | 最高 |
+| 5 | [ErrorProbe: Self-Improving Diagnosis](ErrorProbe-Self-Improving-Diagnosis/) | 把失败变成可检测症状，再反向追踪和验证 | 高 |
+| 6 | [AgentTrace: Causal Graph Tracing](AgentTrace-Causal-Graph-Tracing/) | 显性错误场景下，用因果图做反向根因追踪 | 中 |
+| 7 | [XAI for Coding Agent Failures](XAI-Coding-Agent-Failures/) | 把 trace 解释成人能看懂的诊断报告 | 中 |
 
 最短阅读路线：
 
 ```text
+PROTEA
+  ↓
 REFLECT
   ↓
 False Success
@@ -41,31 +38,88 @@ ErrorProbe
 
 ---
 
-## 先补一篇：PROTEA
+## 1. PROTEA：中间节点期望与评分
 
-虽然 PROTEA 不在这个目录下，但它是全仓库最值得优先读的论文：
+路径：[`PROTEA-Offline-Evaluation/`](PROTEA-Offline-Evaluation/)
 
-- 路径：[../高度相关/PROTEA-Offline-Evaluation/](../高度相关/PROTEA-Offline-Evaluation/)
-- 核心：**中间节点期望 + 中间输出评分**
-- 价值：最贴近 WorkState 少字段、流程跳步、中间产物不满足阶段目标这类隐性失败。
+### 内核方法
 
-建议实际阅读顺序是：
+PROTEA 的核心不是最终答案评估，而是：
 
 ```text
-0. PROTEA
-1. REFLECT
-2. False Success
-3. AgentRx
-4. ErrorProbe
-5. AgentTrace
-6. XAI
+目标 / 最终答案
+    ↓
+反推每个中间节点应该产出什么
+    ↓
+检查真实中间输出是否满足期望
+    ↓
+找到 workflow 中的瓶颈节点
 ```
 
-这里写成 `0`，就是为了明确：它很重要，但不属于 `最相关/` 目录内 6 篇。
+它真正重要的是两个思想：
+
+```text
+Node-Level Expectation
+Intermediate Output Scoring
+```
+
+也就是：每个阶段都应该有“应产出内容”，并且可以被单独打分。
+
+### 为什么最重要
+
+你关心的隐性问题通常长这样：
+
+```text
+某个 Agent 少写了 WorkState 字段
+        ↓
+后续 Agent 基于错误状态继续执行
+        ↓
+流程没有报错
+        ↓
+最终产物交付不理想
+```
+
+这个问题不是传统 bug，而是 **中间节点没有满足阶段期望**。
+
+### 怎么迁移到 AgentLens
+
+可以做成：
+
+```text
+Task Goal
+  ↓
+Stage Expectation
+  ↓
+WorkState / Artifact / Command Evidence
+  ↓
+Intermediate Score
+  ↓
+First Deviation Step
+```
+
+具体功能：
+
+```text
+阶段产物评分
+WorkState 字段完整性检查
+关键文件修改覆盖检查
+验证步骤是否真实执行
+```
+
+### 阅读重点
+
+重点看：
+
+1. 它如何定义 workflow 节点。
+2. 它如何生成节点级期望。
+3. 它如何给中间输出打分。
+4. 它如何定位 workflow bottleneck。
+
+不要只看实验指标，重点看 **中间节点评估思想**。
 
 ---
 
-## 1. REFLECT：silent failure 的关键步骤归因
+## 2. REFLECT：silent failure 的关键步骤归因
 
 路径：[`REFLECT-Silent-Failure-Attribution/`](REFLECT-Silent-Failure-Attribution/)
 
@@ -80,7 +134,7 @@ trace 正常完成
 但最终结果是错的
 ```
 
-核心链路：
+它的核心链路是：
 
 ```text
 定位候选错误步骤
@@ -100,7 +154,7 @@ trace 正常完成
 一整条 Agent 轨迹都跑完了，哪个中间步骤才是导致结果变差的关键点？
 ```
 
-可迁移功能：
+对应功能：
 
 ```text
 Critical Step Attribution
@@ -121,7 +175,7 @@ What-if Replay / 局部重跑验证
 
 ---
 
-## 2. From Confident Closing to Silent Failure：Claim vs Evidence
+## 3. From Confident Closing to Silent Failure：Claim vs Evidence
 
 路径：[`False-Success-Silent-Failure/`](False-Success-Silent-Failure/)
 
@@ -177,7 +231,7 @@ Agent 说：我已经更新了状态字段
 
 ---
 
-## 3. AgentRx：约束合成与逐步验证
+## 4. AgentRx：约束合成与逐步验证
 
 路径：[`AgentRx-Diagnosing-Agent-Failures/`](AgentRx-Diagnosing-Agent-Failures/)
 
@@ -238,7 +292,7 @@ Protocol Violation Log
 
 ---
 
-## 4. ErrorProbe：症状识别、反向追踪、验证
+## 5. ErrorProbe：症状识别、反向追踪、验证
 
 路径：[`ErrorProbe-Self-Improving-Diagnosis/`](ErrorProbe-Self-Improving-Diagnosis/)
 
@@ -298,7 +352,7 @@ Agent 声称完成但无证据
 
 ---
 
-## 5. AgentTrace: Causal Graph Tracing：显性错误因果图
+## 6. AgentTrace: Causal Graph Tracing：显性错误因果图
 
 路径：[`AgentTrace-Causal-Graph-Tracing/`](AgentTrace-Causal-Graph-Tracing/)
 
@@ -357,7 +411,7 @@ Artifact Node
 
 ---
 
-## 6. XAI for Coding Agent Failures：诊断报告展示层
+## 7. XAI for Coding Agent Failures：诊断报告展示层
 
 路径：[`XAI-Coding-Agent-Failures/`](XAI-Coding-Agent-Failures/)
 
@@ -405,34 +459,37 @@ AgentLens 最终不能只输出一堆日志，而应该输出：
 
 ---
 
-## 这 6 篇怎么组合成 AgentLens 的方案
+## 这 7 篇怎么组合成 AgentLens 的方案
 
 ```text
-1. False Success
-   先判断 Agent 是不是真的完成了
+1. PROTEA
+   先建立中间节点期望和中间产物评分
 
-2. AgentRx
+2. False Success
+   判断 Agent 是不是真的完成了
+
+3. AgentRx
    检查轨迹中有没有 state / schema / protocol 约束违反
 
-3. ErrorProbe
+4. ErrorProbe
    把发现的问题变成症状，再反向追踪原因
 
-4. REFLECT
+5. REFLECT
    如果可以重放，用干预验证关键错误步骤
 
-5. AgentTrace
+6. AgentTrace
    对显性错误，用因果图补充依赖追踪
 
-6. XAI
+7. XAI
    把诊断结果做成用户能看懂的报告
 ```
 
 对应到 AgentLens，可以拆成 5 个模块：
 
 ```text
+Intermediate Output Scoring
 Claim vs Evidence Checker
 WorkState / Schema Conformance Checker
-Trajectory Symptom Detector
 Critical Step Attribution
 Diagnosis Report Generator
 ```

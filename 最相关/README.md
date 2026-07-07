@@ -1,14 +1,11 @@
-# 最相关论文导读
+# 最相关论文阅读指南
 
-这个目录放的是最值得优先看的论文，但它们的作用不完全一样。
+这个 README 是整个仓库最重要的入口。它回答两个问题：
 
-你现在真正关心的不是传统意义上的：
+1. **最相关的论文到底在解决什么内核问题？**
+2. **你应该按什么顺序读，才能服务于 AgentLens / CCWhat 的隐性失败诊断？**
 
-```text
-程序报错 → 找哪一行代码错了
-```
-
-而是：
+这里的“最相关”不是传统意义上的“代码报错定位”，而是更贴近真实 Coding Agent 场景的：
 
 ```text
 Agent 看起来正常执行
@@ -18,376 +15,482 @@ Agent 看起来正常执行
 最终产物不理想
 ```
 
-所以读这些论文时，不要只问“它怎么找 bug”，而要问：
-
-> **它能不能帮我发现正常 trace 里的隐性偏差？**
+也就是：**没有明显报错，但系统已经偏离目标。**
 
 ---
 
-## 先读哪几篇
+## 一句话阅读顺序
 
-建议按这个顺序读。
+先读这 5 篇：
 
-| 顺序 | 论文 | 你要抓住的核心 |
-|---|---|---|
-| 1 | [REFLECT: Silent Failure Attribution](REFLECT-Silent-Failure-Attribution/) | trace 正常结束但结果错，怎么定位关键错误步骤 |
-| 2 | [From Confident Closing to Silent Failure](False-Success-Silent-Failure/) | Agent 自信说完成了，但环境状态没完成，怎么识别 false success |
-| 3 | [AgentRx: Diagnosing Agent Failures](AgentRx-Diagnosing-Agent-Failures/) | 把轨迹转成约束检查，发现 state / schema / protocol 违反 |
-| 4 | [ErrorProbe: Self-Improving Diagnosis](ErrorProbe-Self-Improving-Diagnosis/) | 把失败变成可检测症状，再反向追踪和验证 |
-| 5 | [AgentTrace: Causal Graph Tracing](AgentTrace-Causal-Graph-Tracing/) | 显性错误场景下，怎么用因果图做反向根因追踪 |
-| 6 | [XAI for Coding Agent Failures](XAI-Coding-Agent-Failures/) | 怎么把 trace 解释成人能看懂的诊断报告 |
+```text
+1. PROTEA
+2. REFLECT
+3. From Confident Closing to Silent Failure
+4. AgentRx
+5. ErrorProbe
+```
 
-如果时间很少，只看前四篇。
+再读这 2 篇作为补充：
+
+```text
+6. AgentTrace: Causal Graph Tracing
+7. XAI for Coding Agent Failures
+```
+
+说明：`PROTEA` 当前物理目录在 [`../高度相关/PROTEA-Offline-Evaluation/`](../高度相关/PROTEA-Offline-Evaluation/)，但方法价值已经是 P0 第一篇。为了不重复存 PDF，这里直接链接原目录。
 
 ---
 
-## 每篇的内核方法
+## 核心论文总览
 
-### 1. REFLECT：隐性失败归因
-
-**核心问题：**
-
-```text
-没有工具报错
-没有 JSON 解析失败
-没有运行时异常
-但最终答案就是错的
-```
-
-REFLECT 的关键思想是：
-
-```text
-先定位可疑步骤
-  ↓
-对这个步骤做干预修复
-  ↓
-从原轨迹前缀继续 replay
-  ↓
-如果最终结果变好，说明这个步骤更可能是关键错误点
-```
-
-对你的启发：
-
-- 不能只看失败日志，因为隐性失败没有明显错误日志。
-- 诊断要从“结果不好”反推“哪个中间步骤最早偏离”。
-- 后期如果 AgentLens 有 replay / partial replay 能力，REFLECT 是最值得复现的方法之一。
-
-你读的时候重点看：
-
-```text
-它怎么定义 silent failure？
-它怎么生成候选错误步骤？
-它怎么用干预结果反过来验证归因？
-```
+| 顺序 | 论文 | 核心方法 | 对 AgentLens 的意义 |
+|---|---|---|---|
+| 1 | [PROTEA](../高度相关/PROTEA-Offline-Evaluation/) | 中间节点期望 + 中间输出评分 | 判断 WorkState / 中间产物是否满足阶段目标 |
+| 2 | [REFLECT](REFLECT-Silent-Failure-Attribution/) | silent failure 的干预式归因 | 找到正常 trace 中导致结果变差的关键步骤 |
+| 3 | [False Success](False-Success-Silent-Failure/) | Claim vs Environment State | 检查 Agent 声称完成是否有真实证据 |
+| 4 | [AgentRx](AgentRx-Diagnosing-Agent-Failures/) | 约束合成 + 逐步验证 | 检查 schema / state / protocol 是否被违反 |
+| 5 | [ErrorProbe](ErrorProbe-Self-Improving-Diagnosis/) | 症状识别 + 反向追踪 + 验证 | 作为诊断系统主架构 |
+| 6 | [AgentTrace](AgentTrace-Causal-Graph-Tracing/) | 因果图反向追踪 | 处理显性错误和工具依赖图 |
+| 7 | [XAI](XAI-Coding-Agent-Failures/) | trace 解释与报告生成 | 做 Viewer / Report 展示层 |
 
 ---
 
-### 2. From Confident Closing to Silent Failure：False Success
+## 1. PROTEA：中间节点期望与评分
 
-**核心问题：**
+路径：[`../高度相关/PROTEA-Offline-Evaluation/`](../高度相关/PROTEA-Offline-Evaluation/)
+
+### 内核方法
+
+PROTEA 的核心不是最终答案评估，而是：
 
 ```text
-Agent 说：我已经完成了
-但真实环境状态：并没有完成
+目标 / 最终答案
+    ↓
+反推每个中间节点应该产出什么
+    ↓
+检查真实中间输出是否满足期望
+    ↓
+找到 workflow 中的瓶颈节点
 ```
 
-这篇的核心不是传统错误归因，而是识别 **false success**。
-
-它很适合支撑一个功能：
+它真正重要的是两个思想：
 
 ```text
-Claim vs Evidence 检查
+Node-Level Expectation
+Intermediate Output Scoring
 ```
 
-也就是：
+也就是：每个阶段都应该有“应产出内容”，并且可以被单独打分。
+
+### 为什么最重要
+
+你关心的隐性问题通常长这样：
 
 ```text
-Agent 声称做了什么
+某个 Agent 少写了 WorkState 字段
+        ↓
+后续 Agent 基于错误状态继续执行
+        ↓
+流程没有报错
+        ↓
+最终产物交付不理想
+```
+
+这个问题不是传统 bug，而是 **中间节点没有满足阶段期望**。
+
+### 怎么迁移到 AgentLens
+
+可以做成：
+
+```text
+Task Goal
   ↓
-从 trace / command / file diff / test result / WorkState 里找证据
+Stage Expectation
   ↓
-没有证据，就标记为 unsupported claim / false success
+WorkState / Artifact / Command Evidence
+  ↓
+Intermediate Score
+  ↓
+First Deviation Step
 ```
 
-对你的启发：
-
-- Coding Agent 经常会“自信交付”，但没有真实证据。
-- 不要相信最终回复，要看环境状态和执行证据。
-- AgentLens 可以做一个非常实用的检查：**它说测了，真的跑测试了吗？它说改了，真的改到关键文件了吗？**
-
-你读的时候重点看：
+具体功能：
 
 ```text
-false success 怎么定义？
-作者如何比较 Agent 声称状态和真实环境状态？
-为什么 LLM judge 容易被自信表述骗过？
+阶段产物评分
+WorkState 字段完整性检查
+关键文件修改覆盖检查
+验证步骤是否真实执行
 ```
+
+### 阅读重点
+
+重点看：
+
+1. 它如何定义 workflow 节点。
+2. 它如何生成节点级期望。
+3. 它如何给中间输出打分。
+4. 它如何定位 workflow bottleneck。
+
+不要只看实验指标，重点看 **中间节点评估思想**。
 
 ---
 
-### 3. AgentRx：轨迹约束诊断
+## 2. REFLECT：silent failure 的关键步骤归因
 
-**核心问题：**
+路径：[`REFLECT-Silent-Failure-Attribution/`](REFLECT-Silent-Failure-Attribution/)
 
-```text
-最终结果不对
-但单步看起来都正常
-怎么从执行轨迹里发现违反约束的步骤？
-```
+### 内核方法
 
-AgentRx 的核心思想是：
+REFLECT 研究的是：
 
 ```text
-从任务和轨迹中抽取约束
-  ↓
-逐步检查每个步骤是否违反约束
-  ↓
-输出可审计的违反证据
+trace 正常完成
+没有工具崩溃
+没有明显异常
+但最终结果是错的
 ```
 
-这对 WorkState / schema / protocol 问题很有用。
-
-例如你的场景：
-
-```json
-{
-  "design_done": true,
-  "test_required": true,
-  "review_required": true
-}
-```
-
-某个 Agent 少写了字段：
-
-```json
-{
-  "design_done": true
-}
-```
-
-这不是异常，但它违反了状态协议。
-
-对你的启发：
-
-- 把“隐性错误”转成“约束违反”。
-- 约束可以来自任务要求、流程协议、WorkState schema、团队规范。
-- 最终产物差，不一定先找代码 bug，而是先找哪个步骤破坏了约束。
-
-你读的时候重点看：
+它的核心链路是：
 
 ```text
-约束是怎么生成的？
-它怎么逐步检查轨迹？
-它输出的 evidence log 长什么样？
+定位候选错误步骤
+    ↓
+对某一步做干预修复
+    ↓
+从 trace 前缀继续执行 / replay
+    ↓
+如果结果变好，说明这一步更可能是关键错误点
 ```
+
+### 对 AgentLens 的意义
+
+它回答的是：
+
+```text
+一整条 Agent 轨迹都跑完了，哪个中间步骤才是导致结果变差的关键点？
+```
+
+对应功能：
+
+```text
+Critical Step Attribution
+Step Impact Score
+What-if Replay / 局部重跑验证
+```
+
+### 阅读重点
+
+重点看：
+
+1. 它怎么定义 silent failure。
+2. 它怎么生成候选错误步骤。
+3. 它怎么用 intervention 验证归因。
+4. 它对 replay 能力有什么依赖。
+
+如果短期做不了 replay，也可以先借鉴它的 **候选关键步骤排序**。
 
 ---
 
-### 4. ErrorProbe：症状驱动反向追踪
+## 3. From Confident Closing to Silent Failure：Claim vs Evidence
 
-**核心问题：**
+路径：[`False-Success-Silent-Failure/`](False-Success-Silent-Failure/)
 
-```text
-多 Agent 系统失败后，怎么定位是哪个 Agent / 哪个步骤导致的？
-```
+### 内核方法
 
-ErrorProbe 的核心结构可以抽象成：
+这篇关注 false success：
 
 ```text
-失败类型
-  ↓
-可检测症状
-  ↓
-反向追踪
-  ↓
-多 Agent 验证
-  ↓
-经验记忆
+Agent 自信地说“我完成了”
+但环境状态证明它没完成
 ```
 
-它最适合作为 AgentLens 诊断系统的框架骨架。
-
-你可以把隐性失败先变成症状：
+核心不是看有没有报错，而是比较：
 
 ```text
-状态字段缺失
-计划阶段缺失
-测试声明无证据
-后续 Agent 使用默认分支
-文件 diff 没覆盖需求点
+Agent 的完成声明
+    vs
+真实环境状态 / 文件变化 / 命令证据
 ```
 
-然后再做反向追踪。
+### 对 AgentLens 的意义
 
-对你的启发：
-
-- 诊断不能上来就问“根因是什么”，要先把失败拆成可检测症状。
-- 同一种症状可以积累成经验记忆，后续自动复用。
-- 这篇适合指导系统架构，而不是只复现某一个算法。
-
-你读的时候重点看：
-
-```text
-它如何把失败类型 operationalize？
-它的反向追踪如何剪枝上下文？
-它的经验记忆怎么积累？
-```
-
----
-
-### 5. AgentTrace：因果图反向追踪
-
-**核心问题：**
-
-```text
-有明显错误节点时，怎么沿着工具调用依赖链找根因？
-```
-
-它的核心方法是：
-
-```text
-执行日志
-  ↓
-重建工具调用因果图
-  ↓
-从最终错误节点反向追踪
-  ↓
-排序根因候选
-```
-
-这篇适合显性错误：
-
-```text
-测试失败
-命令报错
-工具调用失败
-文件不存在
-接口返回异常
-```
-
-但对你的隐性失败问题，它不是第一优先级，因为隐性失败通常没有明确的 error node。
-
-对你的启发：
-
-- 因果图仍然有价值，可以用来表示依赖关系。
-- 但不能只依赖 error node，要增加 state node、claim node、evidence node、artifact node。
-
-你读的时候重点看：
-
-```text
-它怎么构建依赖图？
-它用哪些信号排序根因？
-哪些部分可以迁移到 AgentLens 的 trace graph？
-```
-
----
-
-### 6. XAI for Coding Agent Failures：诊断报告展示层
-
-**核心问题：**
-
-```text
-原始 trace 太长，用户看不懂
-怎么转成可解释的诊断报告？
-```
-
-它的核心方法是：
-
-```text
-原始执行轨迹
-  ↓
-失败分类 / 自动注释
-  ↓
-结构化事件
-  ↓
-可视化流程 + 自然语言解释
-```
-
-这篇不是最核心的诊断算法，但对产品化很有用。
-
-对你的启发：
-
-- AgentLens 最终不能只输出一堆日志。
-- 要输出“哪个步骤可疑、为什么可疑、证据是什么、建议怎么改”。
-- 它适合做 failure report 页面和自然语言总结。
-
-你读的时候重点看：
-
-```text
-它怎么把 trace 变成结构化解释？
-它的失败分类法怎么设计？
-它的可视化报告怎么组织？
-```
-
----
-
-## 这几篇怎么组合成你的方案
-
-你可以把它们组合成一个完整诊断链路：
-
-```text
-1. False Success
-   先判断 Agent 是不是真的完成了
-
-2. AgentRx
-   检查轨迹中有没有 state / schema / protocol 约束违反
-
-3. ErrorProbe
-   把发现的问题变成症状，再反向追踪原因
-
-4. REFLECT
-   如果可以重放，用干预验证关键错误步骤
-
-5. AgentTrace
-   对显性错误，用因果图补充依赖追踪
-
-6. XAI
-   把诊断结果做成用户能看懂的报告
-```
-
-对应到 AgentLens，可以拆成 5 个模块：
+这篇可以直接变成一个功能：
 
 ```text
 Claim vs Evidence Checker
-WorkState / Schema Conformance Checker
-Trajectory Symptom Detector
-Critical Step Attribution
-Diagnosis Report Generator
 ```
+
+例子：
+
+```text
+Agent 说：我已经测试过了
+证据检查：没有 test command / 没有测试输出
+结论：unsupported claim
+```
+
+```text
+Agent 说：我已经更新了状态字段
+证据检查：WorkState diff 中没有该字段
+结论：false success risk
+```
+
+### 阅读重点
+
+重点看：
+
+1. false success 怎么定义。
+2. 它如何比较 Agent 声明和环境状态。
+3. 为什么 LLM judge 容易被“自信语气”误导。
+4. 为什么只看最终回答不够。
+
+这篇适合作为 AgentLens 的 **验收检查层**。
 
 ---
 
-## 最短阅读路线
+## 4. AgentRx：约束合成与逐步验证
 
-如果只想快速形成方案，按这个读：
+路径：[`AgentRx-Diagnosing-Agent-Failures/`](AgentRx-Diagnosing-Agent-Failures/)
+
+### 内核方法
+
+AgentRx 的核心是：
 
 ```text
-False Success
-  ↓
-AgentRx
-  ↓
-ErrorProbe
-  ↓
-REFLECT
+从任务和轨迹中合成约束
+    ↓
+逐步检查每一步是否违反约束
+    ↓
+生成可审计的 violation log
+    ↓
+定位关键失败步骤和失败类型
 ```
 
-读完这四篇，你基本就能回答：
+它把“隐性错误”转成了“约束违反”。
 
-```text
-怎么发现 Agent 明明没报错但其实没完成？
-怎么检查中间状态是否违背协议？
-怎么把隐性错误转成可检测症状？
-怎么定位最关键的偏差步骤？
+### 对 AgentLens 的意义
+
+这篇非常适合 WorkState / schema / protocol 诊断。
+
+例如可以定义：
+
+```json
+{
+  "required_state_fields": ["design_done", "test_required", "verification_result"]
+}
 ```
 
-如果要做产品展示，再读：
+然后检查：
 
 ```text
-XAI for Coding Agent Failures
+Step 12 更新了 WorkState
+但缺少 test_required
+后续 Step 18 因字段缺失跳过 verification
 ```
 
-如果要做工具调用依赖图，再读：
+对应功能：
 
 ```text
-AgentTrace Causal Graph
+WorkState Conformance Checker
+Schema Violation Detector
+Protocol Violation Log
+```
+
+### 阅读重点
+
+重点看：
+
+1. 它怎么从轨迹里合成 constraints。
+2. 它怎么逐步检查 constraints。
+3. 它怎么生成 evidence / validation log。
+4. 它怎么把约束违反映射到 critical failure step。
+
+这篇适合作为 AgentLens 的 **规则诊断引擎**。
+
+---
+
+## 5. ErrorProbe：症状识别、反向追踪、验证
+
+路径：[`ErrorProbe-Self-Improving-Diagnosis/`](ErrorProbe-Self-Improving-Diagnosis/)
+
+### 内核方法
+
+ErrorProbe 的核心流水线是：
+
+```text
+失败类型 → 可检测症状
+    ↓
+症状驱动的反向追踪
+    ↓
+上下文剪枝
+    ↓
+多 Agent 验证诊断结果
+    ↓
+沉淀经验记忆
+```
+
+### 对 AgentLens 的意义
+
+它适合作为诊断系统主架构：
+
+```text
+Symptom Detector
+    ↓
+Trace Backward Analyzer
+    ↓
+Evidence Collector
+    ↓
+Diagnosis Validator
+    ↓
+Diagnosis Memory
+```
+
+隐性失败也可以先定义成症状：
+
+```text
+状态字段缺失
+Agent 声称完成但无证据
+计划阶段完成但没有后续验证
+关键文件没有被读取或修改
+后续 Agent 使用默认分支继续执行
+```
+
+### 阅读重点
+
+重点看：
+
+1. 它如何把失败分类变成可操作症状。
+2. 它如何反向追踪。
+3. 它如何剪枝无关上下文。
+4. 它如何用多 Agent 验证诊断。
+5. 它如何积累诊断经验。
+
+这篇适合用来设计 AgentLens 的 **诊断流水线**。
+
+---
+
+## 6. AgentTrace: Causal Graph Tracing：显性错误的因果图
+
+路径：[`AgentTrace-Causal-Graph-Tracing/`](AgentTrace-Causal-Graph-Tracing/)
+
+### 内核方法
+
+AgentTrace 的核心是：
+
+```text
+执行日志
+    ↓
+工具调用因果图
+    ↓
+从最终错误节点反向追踪
+    ↓
+定位根因节点
+```
+
+### 对 AgentLens 的意义
+
+它适合处理显性失败：
+
+```text
+工具调用失败
+命令报错
+测试失败
+编译失败
+明确异常节点
+```
+
+但它对 silent failure 不够直接，因为 silent failure 往往没有明确错误节点。
+
+### 阅读重点
+
+只需要重点看：
+
+1. 因果图怎么建。
+2. 节点依赖怎么表示。
+3. 如何从终点反向找根因。
+
+它更适合作为 **工具依赖图 / error propagation graph** 的补充模块。
+
+---
+
+## 7. XAI for Coding Agent Failures：诊断报告展示层
+
+路径：[`XAI-Coding-Agent-Failures/`](XAI-Coding-Agent-Failures/)
+
+### 内核方法
+
+XAI 的核心是：
+
+```text
+原始 execution trace
+    ↓
+自动注释关键事件
+    ↓
+生成结构化解释
+    ↓
+可视化流程 + 自然语言洞察
+```
+
+### 对 AgentLens 的意义
+
+它不负责发现隐性错误本身，更适合做：
+
+```text
+诊断报告
+可视化流程
+用户可读解释
+修复建议展示
+```
+
+### 阅读重点
+
+重点看：
+
+1. 它怎么把 raw trace 转成结构化事件。
+2. 它怎么生成可解释报告。
+3. 它的 UI / 报告表达方式。
+
+这篇适合 AgentLens 的 **Viewer / Report 页面**。
+
+---
+
+## 最终组合方案
+
+这几篇不是互相替代，而是各管一层：
+
+| 层次 | 论文 | 作用 |
+|---|---|---|
+| 中间节点评估 | PROTEA | 判断每个阶段产物是否满足期望 |
+| 关键步骤归因 | REFLECT | 定位 silent failure 的关键错误步骤 |
+| 完成声明校验 | False Success | 检查 Agent 声称完成是否有证据 |
+| 状态/协议约束检查 | AgentRx | 检查 WorkState、schema、流程约束是否被违反 |
+| 诊断流水线 | ErrorProbe | 把症状识别、反向追踪、验证组织成系统 |
+| 显性错误因果图 | AgentTrace | 对报错、测试失败、工具失败做反向追踪 |
+| 报告展示 | XAI | 把诊断结果变成用户看得懂的解释 |
+
+最适合 AgentLens 的组合是：
+
+```text
+PROTEA 的节点期望
++ AgentRx 的约束检查
++ False Success 的证据校验
++ ErrorProbe 的诊断流水线
++ REFLECT 的关键步骤归因
++ XAI 的报告展示
+```
+
+最终目标不是只回答：
+
+```text
+哪里报错了？
+```
+
+而是回答：
+
+```text
+Agent 从哪一步开始看似正常、实际偏离？
+这个偏离有什么证据？
+它如何影响后续流程？
+用户应该优先修哪一个环节？
 ```

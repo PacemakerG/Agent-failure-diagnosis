@@ -59,7 +59,7 @@
 
 ---
 
-## 对 AgentLens / CCWhat 的启发
+## 对 AgentLens  的启发
 
 后续不应只做 `error log -> root cause`，更应围绕：
 

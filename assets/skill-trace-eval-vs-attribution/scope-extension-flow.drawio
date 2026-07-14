@@ -1,0 +1,15 @@
+<mxGraphModel adaptiveColors="auto" dx="1400" dy="800" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1100" pageHeight="300">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="n1" value="最终业务问题&lt;br&gt;或用户反馈" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#1f2937;fontSize=12;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="n2" value="全 Session&lt;br&gt;Action / Event / Artifact 图" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2937;fontSize=11;" vertex="1" parent="1"><mxGeometry x="220" y="40" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="n3" value="反向追踪&lt;br&gt;跨阶段传播链" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#1f2937;fontSize=12;" vertex="1" parent="1"><mxGeometry x="400" y="40" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="n4" value="首次异常、候选根因&lt;br&gt;与漏检 Gate" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1f2937;fontSize=11;" vertex="1" parent="1"><mxGeometry x="580" y="30" width="140" height="80" as="geometry"/></mxCell>
+    <mxCell id="n5" value="领域专家确认、纠正&lt;br&gt;或标记证据不足" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1f2937;fontSize=11;" vertex="1" parent="1"><mxGeometry x="760" y="40" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="n1" target="n2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="n2" target="n3" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="n3" target="n4" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="n4" target="n5" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+  </root>
+</mxGraphModel>

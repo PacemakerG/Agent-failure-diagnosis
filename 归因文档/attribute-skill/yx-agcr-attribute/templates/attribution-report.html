@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGCR 归因报告 · {{requirement_name}}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: #f0f2f5; color: #1a1a2e; line-height: 1.6; font-size: 14px;
+}
+.container { max-width: 100%; margin: 0 auto; padding: 24px 32px 64px; }
+
+/* Header */
+.report-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; padding: 32px 32px 28px; border-radius: 12px 12px 0 0;
+}
+.report-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.report-header .meta-row { display: flex; gap: 24px; font-size: 13px; opacity: 0.9; flex-wrap: wrap; }
+.report-header .meta-row span { display: inline-flex; align-items: center; gap: 4px; }
+.report-header .badge-tag {
+  display: inline-block; background: rgba(255,255,255,0.2); border-radius: 4px;
+  padding: 2px 8px; font-size: 12px; margin-left: 8px;
+}
+
+/* TOC */
+.toc-bar {
+  background: #fff; padding: 10px 24px; border-bottom: 1px solid #e8e8e8;
+  display: flex; gap: 2px; flex-wrap: wrap; font-size: 13px; border-radius: 0 0 12px 12px;
+  margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100;
+}
+.toc-bar a { color: #667eea; text-decoration: none; padding: 4px 10px; border-radius: 4px; transition: background 0.2s; }
+.toc-bar a:hover { background: #f0f0ff; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat-card {
+  background: #fff; border-radius: 10px; padding: 16px 14px; text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); }
+.stat-card .stat-value { font-size: 28px; font-weight: 700; color: #333; }
+.stat-card .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
+.stat-card.accent .stat-value { color: #667eea; }
+.stat-card.warn .stat-value { color: #faad14; }
+.stat-card.success .stat-value { color: #52c41a; }
+
+/* Section */
+.section {
+  background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); scroll-margin-top: 60px;
+}
+.section h2 {
+  font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0; display: flex; align-items: center; gap: 8px;
+}
+.section h2 .section-num {
+  background: #667eea; color: #fff; font-size: 13px; padding: 2px 8px;
+  border-radius: 4px; font-weight: 500;
+}
+.section h3 { font-size: 15px; margin-bottom: 10px; color: #333; }
+
+/* Exec Summary */
+.exec-summary {
+  background: linear-gradient(135deg, #f6f8fc 0%, #eef1fa 100%);
+  border-left: 4px solid #667eea; padding: 20px 24px; border-radius: 8px; margin-bottom: 16px;
+}
+.exec-summary p { margin-bottom: 8px; color: #444; }
+.exec-summary .highlight { color: #667eea; font-weight: 600; }
+.exec-summary .es-highlight { color: #dc2626; font-weight: 600; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table th, table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+table th { background: #fafafa; font-weight: 600; color: #666; white-space: nowrap; }
+table tr:hover td { background: #f8f8ff; }
+.commit-hash { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #667eea; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.badge-high, .badge-HIGH { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; font-weight: 600; }
+.badge-medium, .badge-MEDIUM { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; font-weight: 600; }
+.badge-red { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+.badge-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+.badge-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.badge-blue { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+.badge-purple { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
+.badge-gray { background: #fafafa; color: #999; border: 1px solid #e8e8e8; }
+
+/* AGCR value classes */
+.agcr-good { color: #52c41a; font-weight: 600; }
+.agcr-fair { color: #faad14; font-weight: 600; }
+.agcr-poor { color: #ff4d4f; font-weight: 600; }
+
+/* Distribution Bars */
+.dist-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.dist-bar-label { width: 200px; font-size: 13px; color: #666; text-align: right; flex-shrink: 0; }
+.dist-bar-track { flex: 1; height: 22px; background: #f5f5f5; border-radius: 4px; overflow: hidden; }
+.dist-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 12px; color: #fff; font-weight: 500; min-width: 24px; }
+.dist-bar-fill.c1 { background: #667eea; }
+.dist-bar-fill.c2 { background: #764ba2; }
+.dist-bar-fill.c3 { background: #f093fb; }
+.dist-bar-fill.c4 { background: #4facfe; }
+.dist-bar-fill.c5 { background: #43e97b; }
+.dist-bar-fill.c6 { background: #fa709a; }
+.dist-bar-fill.c7 { background: #faad14; }
+
+/* Stage × Problem Type Cards */
+.stage-problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stage-problem-card { border: 1px solid #e8e8e8; border-radius: 8px; padding: 14px 16px; background: #fafafa; }
+.stage-problem-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.stage-problem-total { font-size: 13px; font-weight: 600; color: #666; margin-left: auto; }
+.stage-problem-items { display: flex; flex-direction: column; gap: 6px; }
+.stage-problem-item { display: flex; align-items: center; gap: 8px; }
+.stage-problem-item .badge { flex-shrink: 0; min-width: 200px; }
+.mini-bar { flex: 1; height: 20px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; font-weight: 600; min-width: 24px; }
+
+/* Legend */
+.legend-box { background: #f9f9fc; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; color: #666; }
+.legend-box .legend-title { font-weight: 600; color: #444; margin-bottom: 4px; font-size: 13px; }
+.legend-box .legend-item { display: inline-block; margin-right: 16px; margin-bottom: 2px; }
+.legend-box .legend-item strong { color: #667eea; }
+
+/* Filter Bar */
+.filter-bar { background: #f5f7fa; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; }
+.filter-group { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.filter-group:last-child { margin-bottom: 0; }
+.filter-group .filter-label { font-size: 12px; color: #999; font-weight: 600; min-width: 70px; }
+.filter-btn { padding: 3px 10px; border-radius: 4px; border: 1px solid #e8e8e8; background: #fff; font-size: 12px; color: #666; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.filter-btn:hover { border-color: #667eea; color: #667eea; }
+.filter-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
+.filter-count { font-size: 13px; color: #666; margin-left: 8px; }
+.filter-count strong { color: #667eea; }
+
+/* CI Card */
+.ci-card { border: 1px solid #e8e8e8; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+.ci-card-header { padding: 12px 16px; background: #fafafa; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+.ci-card-header:hover { background: #f0f0ff; }
+.ci-card-header .ci-id { font-weight: 600; color: #667eea; font-size: 14px; white-space: nowrap; }
+.ci-card-header .ci-desc { flex: 1; font-size: 14px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-card-header .ci-desc-full { display: none; }
+.ci-desc-full { display: none; font-size: 13px; color: #555; line-height: 1.6; margin: 0 0 8px; padding: 8px 12px; background: #f9f9fb; border-radius: 6px; border-left: 3px solid #667eea; }
+.ci-card:not(.collapsed) .ci-desc-full { display: block; }
+.ci-card-header .ci-tags { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
+.ci-card-body { padding: 0 16px 16px; }
+.ci-card.collapsed .ci-card-body { display: none; }
+.ci-card-body .ci-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; padding: 12px; background: #f9f9fc; border-radius: 6px; }
+.ci-card-body .ci-meta-item { display: flex; flex-direction: column; gap: 2px; }
+.ci-card-body .ci-meta-label { font-size: 11px; color: #999; }
+.ci-card-body .ci-meta-value { font-size: 13px; font-weight: 500; }
+
+/* CI Impact */
+.ci-impact-row { display: flex; gap: 12px; margin-bottom: 12px; padding: 10px 12px; background: #f0f5ff; border-radius: 6px; }
+.ci-impact-item { display: flex; flex-direction: column; gap: 2px; }
+.ci-impact-item .ci-impact-label { font-size: 11px; color: #999; }
+.ci-impact-item .ci-impact-value { font-size: 14px; font-weight: 600; }
+
+/* Hunk Detail */
+.hunk-list { margin-top: 8px; }
+.hunk-item { border: 1px solid #f0f0f0; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; background: #fff; }
+.hunk-item .hunk-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.hunk-item .hunk-id { font-weight: 600; color: #333; font-size: 13px; }
+.hunk-item .hunk-summary { font-size: 13px; color: #555; margin-bottom: 4px; }
+
+/* Evidence Chain */
+.evidence-chain { margin-top: 8px; padding-left: 12px; border-left: 3px solid #f0f0f0; }
+.evidence-step { margin-bottom: 8px; font-size: 13px; }
+.evidence-step .ev-stage { font-weight: 600; color: #667eea; }
+.evidence-step .ev-artifact { font-size: 12px; color: #999; }
+.evidence-step .ev-finding { color: #555; margin-top: 2px; }
+.evidence-step .ev-upstream { font-size: 12px; color: #888; margin-top: 2px; }
+.evidence-step .ev-snippet { font-size: 12px; color: #666; margin-top: 2px; padding: 4px 8px; background: #f9f9f9; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+.evidence-step .ev-relevance { font-size: 12px; color: #999; margin-top: 2px; font-style: italic; }
+
+/* Code block */
+.attr-code-block { display: flex; gap: 8px; margin: 8px 0; }
+.attr-code-panel { flex: 1; border-radius: 6px; overflow: hidden; }
+.attr-code-panel.before { border: 1px solid #ffccc7; }
+.attr-code-panel.after { border: 1px solid #b7eb8f; }
+.attr-code-panel-label { font-size: 11px; padding: 4px 8px; font-weight: 600; }
+.attr-code-panel.before .attr-code-panel-label { background: #fff2f0; color: #ff4d4f; }
+.attr-code-panel.after .attr-code-panel-label { background: #f6ffed; color: #52c41a; }
+.attr-code-panel pre { padding: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+
+/* AGCR Metrics */
+.agcr-summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+.agcr-metric-card { background: #f9f9fc; border-radius: 8px; padding: 12px 10px; text-align: center; }
+.agcr-metric-card .metric-value { font-size: 22px; font-weight: 700; }
+.agcr-metric-card .metric-label { font-size: 11px; color: #999; margin-top: 4px; }
+.agcr-metric-card.accent .metric-value { color: #667eea; }
+.agcr-metric-card.warn .metric-value { color: #faad14; }
+.agcr-metric-card.success .metric-value { color: #52c41a; }
+.agcr-metric-card.danger .metric-value { color: #ff4d4f; }
+.agcr-metric-card.gray .metric-value { color: #999; }
+
+/* Recommendation */
+.rec-group { margin-bottom: 16px; }
+.rec-group-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.rec-group-title.high { background: #fff2f0; color: #ff4d4f; }
+.rec-group-title.medium { background: #fff7e6; color: #fa8c16; }
+.rec-item { padding: 8px 14px; margin-bottom: 6px; font-size: 13px; color: #555; border-left: 3px solid #e8e8e8; background: #fafafa; border-radius: 0 4px 4px 0; }
+.rec-item .rec-cluster { font-weight: 600; color: #667eea; }
+.rec-item a { color: #667eea; text-decoration: none; }
+
+/* Key findings */
+.kf-item { padding: 8px 14px; margin-bottom: 6px; font-size: 13px; color: #555; border-left: 3px solid #e8e8e8; background: #fafafa; border-radius: 0 4px 4px 0; }
+.kf-item strong { color: #333; }
+
+/* Misc */
+.empty-state { text-align: center; padding: 24px; color: #ccc; font-size: 14px; }
+.empty { color: #a8a29e; font-style: italic; font-size: 13px; }
+.gate-passed { display: inline-flex; align-items: center; gap: 4px; color: #52c41a; font-weight: 500; }
+.derivation-hint { font-size: 11px; color: #aaa; margin-top: 4px; font-style: italic; background: #f9f9f9; padding: 2px 6px; border-radius: 3px; display: inline-block; }
+.direct-cause-box { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 6px; padding: 8px 12px; margin: 8px 0; font-size: 13px; color: #555; }
+.direct-cause-box .label { font-weight: 600; color: #d48806; }
+.muted { color: #999; font-size: 12px; }
+.sub-section-title { font-size: 13px; font-weight: 600; color: #57534e; margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid #d6d3d1; }
+
+/* Tab Bar */
+.tab-bar {
+  background: #fff; padding: 6px 24px; border-bottom: 1px solid #e8e8e8;
+  display: flex; gap: 4px; border-radius: 0 0 12px 12px;
+  margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  position: sticky; top: 0; z-index: 200;
+}
+.tab-btn {
+  padding: 8px 20px; border-radius: 6px; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; background: transparent; color: #666;
+  transition: all 0.2s;
+}
+.tab-btn:hover { background: #f0f0ff; color: #667eea; }
+.tab-btn.active { background: #667eea; color: #fff; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="report-header">
+  <h1>AGCR 归因分析报告 <span class="badge-tag">{{requirement_name}}</span></h1>
+  <div class="meta-row">
+    <span>需求：{{requirement_id}} {{requirement_name}}</span>
+    <span>开发：{{developers}}</span>
+    <span>生成：{{generated_at}}</span>
+    <span>运行 ID：{{run_id}}</span>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="attribution">📊 归因分析</button>
+  <button class="tab-btn" data-tab="trace">🕐 执行轨迹</button>
+</div>
+
+<!-- Tab 1: 归因分析 -->
+<div id="tab-content-attribution" class="tab-content active">
+
+<!-- TOC -->
+<div class="toc-bar">
+  <a href="#s1">§1 基本信息</a>
+  <a href="#s2">§2 代码版本与 Diff 概览</a>
+  <a href="#s3">§3 计算采纳率</a>
+  <a href="#s4">§4 问题分布</a>
+  <a href="#s5">§5 归因明细（CI 粒度）</a>
+  <a href="#s6">§6 排除 Hunk</a>
+  <a href="#s7">§7 改进建议</a>
+  <a href="#s8">§8 证据缺口</a>
+  <a href="#s9">§9 产物读取</a>
+</div>
+
+{{empty_diff_notice}}
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-value">{{repo_count}}</div><div class="stat-label">分析仓库数</div></div>
+  <div class="stat-card"><div class="stat-value">{{hunk_count}}</div><div class="stat-label">有效 Hunk 数</div></div>
+  <div class="stat-card accent"><div class="stat-value">{{ci_count}}</div><div class="stat-label">修改意图 (CI)</div></div>
+  <div class="stat-card warn"><div class="stat-value">{{top_issue_type}}</div><div class="stat-label">Top 问题类型</div></div>
+  <div class="stat-card warn"><div class="stat-value">{{top_stage}}</div><div class="stat-label">Top 首因层</div></div>
+  <div class="stat-card success"><div class="stat-value">{{confidence_summary}}</div><div class="stat-label">高置信度</div></div>
+</div>
+
+<!-- Executive Summary -->
+<div class="exec-summary">{{executive_summary}}</div>
+
+<!-- §1 基本信息 -->
+<div class="section" id="s1">
+  <h2><span class="section-num">§1</span> 基本信息</h2>
+  <table>
+    <tbody>
+      <tr><th width="140">需求 ID</th><td>{{requirement_id}}</td></tr>
+      <tr><th>需求名称</th><td>{{requirement_name}}</td></tr>
+      <tr><th>开发人员</th><td>{{developers}}</td></tr>
+      <tr><th>运行 ID</th><td>{{run_id}}</td></tr>
+      <tr><th>Commit 来源</th><td>{{commit_source}}</td></tr>
+      <tr><th>Gate 校验</th><td>{{gate_status}}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- §2 代码版本与 Diff 概览 -->
+<div class="section" id="s2">
+<h2><span class="section-num">§2</span> 代码版本与 Diff 概览</h2>
+<table>
+<thead>
+<tr><th>仓库</th><th>分支</th><th>Base</th><th>One-shot</th><th>Final</th><th style="text-align:center;">AI 编码<br><span style="font-weight:400;font-size:11px;color:#999;">base→one-shot</span></th><th style="text-align:center;">人工修改<br><span style="font-weight:400;font-size:11px;color:#999;">one-shot→final</span></th><th>有效 Hunk</th><th>变更摘要</th></tr>
+</thead>
+<tbody>
+{{repo_diff_rows}}
+</tbody>
+</table>
+{{repo_diff_note}}
+{{repo_commit_details}}
+</div>
+
+<!-- §3 计算采纳率 -->
+<div class="section" id="s3">
+  <h2><span class="section-num">§3</span> 计算采纳率 (AGCR)</h2>
+
+  <h3>3.1 全局 AGCR 概览</h3>
+  <div class="agcr-summary-grid">{{agcr_metric_cards}}</div>
+
+  <h3 style="margin-top:16px;">3.2 按仓库统计</h3>
+  <table>
+    <thead>
+      <tr><th>仓库</th><th>One-shot</th><th>Final</th><th>归因 Hunk 数</th><th>One-shot 行数</th><th>废弃行数</th><th>最终行数</th><th>AGCR（行级）</th><th>废弃率</th><th>备注</th></tr>
+    </thead>
+    <tbody>
+      {{per_repo_rows}}
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:16px;">3.3 按 CI 粒度统计</h3>
+  {{per_ci_table}}
+
+  {{agcr_formula_note}}
+</div>
+
+<!-- §4 问题分布 -->
+<div class="section" id="s4">
+  <h2><span class="section-num">§4</span> 问题分布</h2>
+
+  {{problem_legends}}
+
+  <h3>4.1 首因层 × 问题类型（按 Hunk 计数）</h3>
+  {{stage_problem_grid}}
+
+  <h3 style="margin-top:16px;">4.2 Diff 性质分布（按 CI 计数）</h3>
+  {{diff_nature_bars}}
+
+  <h3 style="margin-top:16px;">4.3 归因方向分布（按 Hunk 计数）</h3>
+  {{attribution_direction_bars}}
+</div>
+
+<!-- §5 归因明细 -->
+<div class="section" id="s5">
+  <h2><span class="section-num">§5</span> 归因明细（按修改意图 CI 粒度）</h2>
+  <p style="font-size:13px;color:#999;margin-bottom:12px;">{{ci_intro_text}}</p>
+
+  {{filter_bar}}
+
+  <div id="ci-list">{{ci_cards}}</div>
+</div>
+
+<!-- §6 排除 Hunk -->
+<div class="section" id="s6">
+  <h2><span class="section-num">§6</span> 排除 Hunk 汇总</h2>
+  {{excluded_hunk_summary}}
+</div>
+
+<!-- §7 改进建议 -->
+<div class="section" id="s7">
+  <h2><span class="section-num">§7</span> 改进建议</h2>
+
+  <h3 style="margin-bottom:10px;">关键发现（按优先级排序）</h3>
+  <div style="margin-bottom:20px;">{{key_findings_items}}</div>
+
+  <h3 style="margin-bottom:10px;">详细改进建议</h3>
+  {{recommendation_items}}
+</div>
+
+<!-- §8 证据缺口 -->
+<div class="section" id="s8">
+  <h2><span class="section-num">§8</span> 证据缺口</h2>
+  {{evidence_gap_content}}
+</div>
+
+<!-- §9 产物读取 -->
+<div class="section" id="s9">
+  <h2><span class="section-num">§9</span> 产物读取情况</h2>
+  <table>
+    <thead><tr><th>阶段</th><th>产物名称</th><th>状态</th><th>路径/说明</th></tr></thead>
+    <tbody>
+      {{artifact_summary_rows}}
+    </tbody>
+  </table>
+</div>
+
+</div><!-- /tab-content-attribution -->
+
+<!-- Tab 2: 执行轨迹 -->
+<div id="tab-content-trace" class="tab-content">
+
+<!-- §10 执行轨迹 -->
+<div class="section" id="s10">
+  <h2><span class="section-num">§10</span> 执行轨迹</h2>
+  {{execution_trace_section}}
+</div>
+
+</div><!-- /tab-content-trace -->
+
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var target = this.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    this.classList.add('active');
+    document.getElementById('tab-content-' + target).classList.add('active');
+  });
+});
+
+// CI card collapse/expand
+document.querySelectorAll('.ci-card-header').forEach(function(header) {
+  header.addEventListener('click', function(e) {
+    this.parentElement.classList.toggle('collapsed');
+  });
+});
+
+// Filter bar
+var activeFilters = { stage: 'all', ptype: 'all', rcause: 'all', dnature: 'all' };
+
+document.querySelectorAll('.filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var filterType = this.dataset.filter;
+    var filterValue = this.dataset.value;
+    document.querySelectorAll('.filter-btn[data-filter="' + filterType + '"]').forEach(function(b) {
+      b.classList.remove('active');
+    });
+    this.classList.add('active');
+    activeFilters[filterType] = filterValue;
+
+    // Cascading: when stage changes, update available ptype buttons
+    if (filterType === 'stage') {
+      var allowedPtypes = window._stagePtypeMap[filterValue] || [];
+      document.querySelectorAll('.filter-btn[data-filter="ptype"]').forEach(function(b) {
+        if (b.dataset.value === 'all') return;
+        if (allowedPtypes.indexOf(b.dataset.value) !== -1 || filterValue === 'all') {
+          b.style.display = '';
+        } else {
+          b.style.display = 'none';
+          if (activeFilters.ptype === b.dataset.value) {
+            activeFilters.ptype = 'all';
+            document.querySelectorAll('.filter-btn[data-filter="ptype"]').forEach(function(b2) {
+              b2.classList.remove('active');
+            });
+            document.querySelector('.filter-btn[data-filter="ptype"][data-value="all"]').classList.add('active');
+          }
+        }
+      });
+    }
+
+    applyFilters();
+  });
+});
+
+function applyFilters() {
+  var visibleCount = 0;
+  document.querySelectorAll('.ci-card').forEach(function(card) {
+    var visible = true;
+    if (activeFilters.stage !== 'all' && card.dataset.stage !== activeFilters.stage) visible = false;
+    if (activeFilters.ptype !== 'all' && card.dataset.ptype !== activeFilters.ptype) visible = false;
+    if (activeFilters.rcause !== 'all' && card.dataset.rcause !== activeFilters.rcause) visible = false;
+    if (activeFilters.dnature !== 'all' && card.dataset.dnature !== activeFilters.dnature) visible = false;
+    card.style.display = visible ? '' : 'none';
+    if (visible) visibleCount++;
+  });
+  var countEl = document.getElementById('ci-count');
+  if (countEl) countEl.textContent = visibleCount;
+}
+</script>
+
+</body>
+</html>

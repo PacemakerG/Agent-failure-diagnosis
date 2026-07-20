@@ -1,0 +1,1852 @@
+{
+  "_comment": "归因分类体系 v2。attribution_stages 按 P5(N5)→P1(N1) 正向排列。每个 problem_type 含 root_cause_variants，对应 R1-R5 根因。R5 仅适用于 N3/N4（P3/P4）。N1 仅有 R1 变体，N2 仅有 R1-R4，N5 仅有 R1-R4。",
+  "root_causes": {
+    "R1": {
+      "id": "R1",
+      "label": "知识不足",
+      "description": "完成该步骤所需的领域知识在知识源中缺失（R1a 源头缺失），或知识源有记录但未被加载/召回到当前上下文（R1b 传递损耗）",
+      "evidence_hint": "检查对应 knowledge/domain-knowledge/external-entry-index.md 是否有记录；若有记录检查 ai-trace 是否召回",
+      "knowledge_base_categories": {
+        "overview": "系统边界、术语、主链路等事实底座",
+        "not-to": "业务规则、架构约束、编码规范、历史踩坑等约束和风险",
+        "how-to": "跨领域实现模式、最佳实践、样例等实践方法",
+        "complex-clarification": "方案取舍、已定决策等决策记录",
+        "spec": "模板、评审准入、门禁规范等文档生产与评审准入",
+        "faq": "常见问题",
+        "extensions": "扩展材料"
+      }
+    },
+    "R2": {
+      "id": "R2",
+      "label": "执行损耗",
+      "description": "信息已被正确识别，但在单步写入落盘或跨步骤合并传递过程中丢失、截断或变形",
+      "evidence_hint": "对比 ai-trace 中间推理结果与最终写入产出物内容"
+    },
+    "R3": {
+      "id": "R3",
+      "label": "模型推理",
+      "description": "知识充分且已加载到上下文，但模型在理解、推理、映射或判断过程中产生偏差",
+      "evidence_hint": "逐条对比输入产出物（如 design.md D-xx）与输出产出物（如 tasks.md 覆盖矩阵），检查一致性"
+    },
+    "R4": {
+      "id": "R4",
+      "label": "门禁漏检",
+      "description": "阶段性 Gate 检查或人工确认环节未能拦截已存在的问题，问题穿透到下游阶段",
+      "evidence_hint": "复查各阶段 gate 文件（plan-review.md/design-review.md/requirement-gate.md/baseline-gate.md）各检查项及判定结论"
+    },
+    "R5": {
+      "id": "R5",
+      "label": "澄清交互不充分",
+      "description": "模型在澄清环节未就关键问题提问，或提问后用户回答模糊而模型未有效追问。仅适用于 N3/N4",
+      "evidence_hint": "检查 clarification-log.md 或 Phase 8 澄清记录中是否有针对该问题点的提问与回答"
+    }
+  },
+  "surface_issue_types": [
+    {
+      "id": "FUNC_MISSING",
+      "label": "功能缺失",
+      "description": "代码中缺少应有功能，如遗漏分支判断、必要逻辑未实现、需求要求的功能点未写入代码",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "Hunk 文件路径 → tasks.md Files 字段 → D-xx → design.md 设计项，检查 D-xx 行为契约是否完整实现"
+    },
+    {
+      "id": "FUNC_EXTRA",
+      "label": "功能多余",
+      "description": "代码中存在多余功能或冗余逻辑，如重复实现、不必要的代码路径、需求未要求的功能被额外实现",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "检查 hunk 改动是否超出 design.md D-xx 行为契约范围"
+    },
+    {
+      "id": "FUNC_LOGIC_ERROR",
+      "label": "功能逻辑错误",
+      "description": "代码功能逻辑错误，如条件判断取反、边界值处理错误、计算公式有误、状态转换方向错误",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "Hunk 文件路径 → tasks.md Files 字段 → D-xx → design.md 设计项，逐条对比逻辑一致性"
+    },
+    {
+      "id": "BEHAVIOR_CONFLICT",
+      "label": "与现有行为冲突",
+      "description": "AI 生成代码与既有流程、组件或数据结构存在行为冲突，如覆盖了已有的全局状态、修改了共享数据结构导致既有调用方受影响",
+      "first_artifacts": "tasks.md → current-state.md",
+      "check_note": "检查 current-state.md 中现状行为是否被记录、是否传递到任务指令"
+    },
+    {
+      "id": "COMPAT_MISSING",
+      "label": "兼容性处理缺失",
+      "description": "缺少向后兼容处理，如接口字段删除未做兼容、枚举值变更未做降级、数据格式变更未做迁移方案",
+      "first_artifacts": "tasks.md → current-state.md",
+      "check_note": "检查 current-state.md 中既有接口/数据结构约束是否被记录并传递到任务指令"
+    },
+    {
+      "id": "INTERFACE_MISMATCH",
+      "label": "接口签名/参数不对",
+      "description": "方法签名、请求/响应 DTO 字段、Thrift IDL 与实际调用方或服务端定义不匹配，或参数类型/返回值类型有误",
+      "first_artifacts": "tasks.md → design-interface.md",
+      "check_note": "检查 design-interface.md 接口定义是否正确、是否传递到任务指令"
+    },
+    {
+      "id": "DATA_MODEL_ERROR",
+      "label": "数据模型/字段有误",
+      "description": "数据模型设计有误，如数据库表字段类型不匹配、DTO 字段缺失或多余、枚举值定义错误、字段映射关系不正确",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "检查 design.md 中数据模型设计项是否正确、是否传递到任务指令"
+    },
+    {
+      "id": "ARCH_VIOLATION",
+      "label": "架构/分层违反",
+      "description": "违反架构分层约束，如 Controller 直接操作数据库、跨层调用、依赖方向错误、模块职责越界",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "检查 constraint-check.md 中架构分层约束是否存在、是否传递到任务指令"
+    },
+    {
+      "id": "MIDDLEWARE_MISUSE",
+      "label": "中间件使用不当",
+      "description": "中间件使用不当，如缓存策略错误、消息队列配置有误、RPC 超时/重试参数不合理、分布式锁使用错误",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "检查 constraint-check.md/knowledge.md 中中间件使用规范是否存在、是否传递到任务指令"
+    },
+    {
+      "id": "CODING_STYLE",
+      "label": "编码风格/命名不规范",
+      "description": "编码风格或命名不规范，如变量命名不符合团队约定、方法过长、缺少必要注释、代码结构混乱",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "检查 constraint-check.md/knowledge.md 中编码风格约束是否存在、是否传递到任务指令"
+    },
+    {
+      "id": "DEFENSIVE_MISSING",
+      "label": "防御性代码缺失",
+      "description": "缺少防御性代码，如 null check 缺失、异常捕获不完整、幂等保护缺失、边界条件未处理、并发安全未考虑",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "检查 constraint-check.md/knowledge.md 中防御性编码规范是否存在、是否传递到任务指令"
+    },
+    {
+      "id": "TRANSACTION_ISSUE",
+      "label": "事务/一致性问题",
+      "description": "事务或数据一致性问题，如事务边界错误、分布式事务处理不当、并发数据竞争、缓存与数据库不一致",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "检查 design.md 中事务/一致性设计项是否正确、是否传递到任务指令"
+    },
+    {
+      "id": "ROLLOUT_MISSING",
+      "label": "上线方案缺失",
+      "description": "缺少上线方案相关代码，如缺少灰度发布开关、缺少回滚方案、缺少数据库迁移步骤、缺少配置开关",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "检查 design.md 中灰度/回滚设计项是否存在、是否传递到任务指令"
+    },
+    {
+      "id": "PERFORMANCE_ISSUE",
+      "label": "性能问题",
+      "description": "性能问题，如 N+1 查询、大对象未分页、缓存未命中导致性能下降、循环内重复计算、批量操作未优化",
+      "first_artifacts": "tasks.md → design.md",
+      "check_note": "检查 design.md 中性能设计项是否存在、是否传递到任务指令"
+    },
+    {
+      "id": "PERSONAL_STYLE",
+      "label": "个人风格/偏好调整",
+      "description": "RD 明确标注为个人偏好的修改（commit message 含 style:/chore: 且无业务逻辑变化），归因为编码阶段风格一致性问题",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "检查编码风格约束是否被加载、是否传递到任务指令"
+    },
+    {
+      "id": "LOGGING_MISSING",
+      "label": "日志规范缺失",
+      "description": "AI 代码缺少必要的日志记录，或日志级别/格式不符合团队规范。人工修改补充了日志打印、调整了日志级别、增加了关键链路埋点",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "先检查 Task/D-xx 是否引用了 constraint-check.md 中日志规范 C 项；若已引用但 AI 未遵守→执行偏差；若未引用→检查 constraint-check.md 是否有对应 C 项→若无则穿透到 N2 检查 domain-knowledge.md 的 not-to 分类"
+    },
+    {
+      "id": "UTIL_EXTRACTION",
+      "label": "工具方法抽取/代码复用缺失",
+      "description": "人工修改将重复代码抽取为统一工具方法，或将内联逻辑重构为复用模式。表明 AI 缺少代码复用意识或知识库缺少实现模式指引",
+      "first_artifacts": "tasks.md → design.md → constraint-check.md + knowledge.md",
+      "check_note": "先检查 Task/D-xx 是否引用了 constraint-check.md 中代码复用 C 项；若已引用但 AI 未遵守→执行偏差；若未引用→检查 constraint-check.md 是否有对应 C 项→若无则穿透到 N2 检查 domain-knowledge.md 的 how-to 分类"
+    },
+    {
+      "id": "NON_FUNC_OMISSION",
+      "label": "非功能性遗漏",
+      "description": "人工修改补充了日志、监控、异常处理、防御性代码、幂等保护等非功能性内容，且这些内容属于团队规范/编码约定而非设计项明确要求",
+      "first_artifacts": "tasks.md → constraint-check.md + knowledge.md",
+      "check_note": "先检查 Task/D-xx 是否引用了 constraint-check.md 中对应 C 项；若已引用但 AI 未遵守→执行偏差；若未引用→检查 constraint-check.md 是否有对应 C 项→若无则穿透到 N2 检查 domain-knowledge.md 的 not-to 分类"
+    },
+    {
+      "id": "OTHER",
+      "label": "其他问题",
+      "description": "不属于以上几类的其他问题，归因起点仍为最近阶段产出物，检查参考 tasks.md 及各阶段设计文件",
+      "first_artifacts": "tasks.md → design.md 及所有阶段文件",
+      "check_note": "不属于以上几类，逐层检查所有可用产出物"
+    }
+  ],
+  "attribution_stages": [
+    {
+      "id": "P5",
+      "label": "N5 编码计划层问题",
+      "stage": "N5",
+      "stage_name": "编码计划",
+      "gate_file": "plan-review.md",
+      "allowed_root_causes": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "knowledge_base_categories": [
+        "how-to",
+        "not-to",
+        "spec"
+      ],
+      "problem_types": [
+        {
+          "id": "P5-1",
+          "label": "任务遗漏",
+          "description": "design.md 的设计项（D-xx）完全未被映射到 tasks.md 的任何 Task 条目，覆盖矩阵存在整行缺失",
+          "root_cause_variants": [
+            {
+              "sub_type": "P5-1a",
+              "root_cause": "R1",
+              "description": "缺少任务立项惯例的领域知识（knowledge.md 未收录该场景下的任务拆解惯例，或已有知识未召回）",
+              "evidence": "检查 knowledge.md 中是否有该场景任务拆解惯例；若有，检查 ai-trace 是否召回",
+              "knowledge_base_category": "how-to"
+            },
+            {
+              "sub_type": "P5-1b",
+              "root_cause": "R3",
+              "description": "D-xx 映射为 Task 时整体遗漏（模型扫描 design.md 时漏看/漏记某个 D-xx）",
+              "evidence": "对比 design.md 所有 D-xx 编号与 tasks.md 覆盖矩阵，找出未被承接的 D-xx"
+            },
+            {
+              "sub_type": "P5-1c",
+              "root_cause": "R2",
+              "description": "已识别的 Task 在写入 tasks.md 时被截断、合并或遗漏，覆盖矩阵未同步更新",
+              "evidence": "对比 ai-trace 中间推理结果与 tasks.md 最终写入的 Task 列表及覆盖矩阵"
+            },
+            {
+              "sub_type": "P5-1d",
+              "root_cause": "R4",
+              "description": "tasks.md 计划自检（plan-review.md）未发现覆盖矩阵的整行缺失",
+              "evidence": "复查 plan-review.md 覆盖矩阵完整性检查项及判定结论"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P5-2",
+          "label": "任务步骤覆盖不全",
+          "description": "D-xx 在 tasks.md 中已有对应 Task，但 Task 内部步骤未完整覆盖 D-xx 的行为契约（异常分支/边界/防御性代码/兼容回滚等细节未展开为独立 Instruction 步骤）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P5-2a",
+              "root_cause": "R1",
+              "description": "缺少异常分支/边界步骤展开惯例的领域知识（knowledge.md 未收录\"该类场景必须展开哪些步骤\"的惯例）",
+              "evidence": "检查 knowledge.md 中是否有异常/边界步骤展开惯例；若有，检查 ai-trace 是否召回",
+              "knowledge_base_category": "how-to"
+            },
+            {
+              "sub_type": "P5-2b",
+              "root_cause": "R3",
+              "description": "模型仅提炼主流程，异常/边界步骤未展开为独立 Instruction",
+              "evidence": "对比 design.md D-xx 行为契约中的异常分支/边界条件与 tasks.md 该 Task 的 Instruction 步骤"
+            },
+            {
+              "sub_type": "P5-2c",
+              "root_cause": "R2",
+              "description": "模型最初规划出了完整步骤，但写入 tasks.md 或多轮修改中被简化/截断",
+              "evidence": "对比 ai-trace 中间推理结果与 tasks.md 最终写入的 Instruction 步骤"
+            },
+            {
+              "sub_type": "P5-2d",
+              "root_cause": "R4",
+              "description": "plan-review.md 未针对 Task 步骤是否完整覆盖 D-xx 全部行为契约做有效检查",
+              "evidence": "复查 plan-review.md 中是否包含步骤完整性核对项"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P5-3",
+          "label": "任务未遵循详设",
+          "description": "Task 的 Instruction 步骤逻辑本身与 design.md 对应 D-xx 的行为契约不一致（步骤数量齐全但内容有误：约束写反/字段名不符/步骤顺序错误）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P5-3a",
+              "root_cause": "R1",
+              "description": "通常不适用，仅当业务规则理解偏差源于行业术语/专有概念知识缺失时适用",
+              "evidence": "检查该业务规则相关术语/概念是否在 knowledge.md 中有记录且被召回"
+            },
+            {
+              "sub_type": "P5-3b",
+              "root_cause": "R3",
+              "description": "模型将 D-xx 行为契约转化为 Instruction 时逻辑偏差（约束条件写反、字段类型不符、步骤顺序错误）",
+              "evidence": "逐条对比 Task 的 Instruction 步骤与 design.md 对应 D-xx 的行为契约/伪代码"
+            },
+            {
+              "sub_type": "P5-3c",
+              "root_cause": "R2",
+              "description": "Instruction 最初版本与 D-xx 一致，但多轮修改或 compact 过程中被改错/简化为不准确表述",
+              "evidence": "对比 ai-trace 各轮次 tasks.md 版本，检查 Instruction 逻辑是否在某轮被改错"
+            },
+            {
+              "sub_type": "P5-3d",
+              "root_cause": "R4",
+              "description": "plan-review.md 未逐条比对 Task 的 Instruction 与 design.md D-xx 行为契约，未发现不一致",
+              "evidence": "复查 plan-review.md 中是否包含 Instruction 与 D-xx 一致性核对项"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P5-4",
+          "label": "编码偏离计划",
+          "description": "AI 代码实现偏离了 tasks.md 的行为契约（Task 指令和步骤），而非计划本身存在缺陷。计划质量无问题，但实际代码与计划不符。root_cause 通过 R1-R5 核验流程判定",
+          "root_cause_variants": [
+            {
+              "sub_type": "P5-4a",
+              "root_cause": "R1",
+              "description": "AI 缺少实现 tasks.md 指令所需的领域知识（如框架用法、API 签名等），导致代码偏离计划",
+              "evidence": "检查 knowledge.md 中是否有相关框架/API 知识；对比 Task Instruction 与实际代码的实现差异",
+              "knowledge_base_category": ["not-to", "how-to"]
+            },
+            {
+              "sub_type": "P5-4b",
+              "root_cause": "R2",
+              "description": "AI 理解了 Task Instruction 但在代码生成过程中上下文丢失，导致偏离",
+              "evidence": "对比 ai-trace 中对 Task 的理解记录与最终代码实现"
+            },
+            {
+              "sub_type": "P5-4c",
+              "root_cause": "R3",
+              "description": "模型自身生成代码时偏离了 Task 指令（非知识缺失或上下文丢失，而是模型推理偏差）",
+              "evidence": "逐条对比 Task Instruction 步骤与实际代码实现"
+            },
+            {
+              "sub_type": "P5-4d",
+              "root_cause": "R4",
+              "description": "代码审查（code-review.md）未发现代码与 tasks.md 指令的偏差",
+              "evidence": "复查 code-review.md 是否包含与 tasks.md 指令的逐条核对项"
+            },
+            {
+              "sub_type": "P5-4e",
+              "root_cause": "R5",
+              "description": "Task Instruction 描述模糊或存在歧义，导致 AI 理解偏差进而代码偏离",
+              "evidence": "检查 tasks.md 对应 Task 的 Instruction 是否存在多种合理解释"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        }
+      ],
+      "decision_tree": {
+        "nodes": [
+          {
+            "node": 1,
+            "question": "design.md §3 的每个 D-xx 在 tasks.md 中都有对应 Task 吗？（检查 Task 的 Covers 字段是否覆盖所有 D-xx）",
+            "yes_next": 2,
+            "no_type": "P5-1"
+          },
+          {
+            "node": 2,
+            "question": "Task 的 Instruction 步骤是否完整覆盖 D-xx 行为契约的所有分支？（异常/边界/幂等/回滚是否展开为独立步骤，对比 D-xx 流程图/伪代码）",
+            "yes_next": 3,
+            "no_type": "P5-2"
+          },
+          {
+            "node": 3,
+            "question": "Task 的 Instruction 步骤逻辑与 D-xx 行为契约一致吗？（对比 Instruction 与 D-xx 流程图/伪代码的约束条件/字段名/步骤顺序）",
+            "yes_next": 4,
+            "no_type": "P5-3"
+          },
+          {
+            "node": 4,
+            "question": "AI 代码是否遵循了产物的行为契约？（对比 before-side 代码与 tasks.md 的 Task 指令和步骤，如偏离则为执行偏差）",
+            "yes_next": null,
+            "no_type": "P5-4"
+          }
+        ],
+        "entry_map": {
+          "existence": 1,
+          "correctness": 3,
+          "completeness": 2,
+          "execution_deviation": 4
+        }
+      }
+    },
+    {
+      "id": "P4",
+      "label": "N4 技术方案层问题",
+      "stage": "N4",
+      "stage_name": "技术方案",
+      "gate_file": "design-review.md",
+      "allowed_root_causes": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "knowledge_deps_primary": [
+        "constraint-index.md",
+        "pitfall-index.md",
+        "design-pattern.md",
+        "not-to.md",
+        "how-to.md",
+        "api-convention.md"
+      ],
+      "knowledge_base_categories": [
+        "not-to",
+        "how-to",
+        "complex-clarification",
+        "spec"
+      ],
+      "problem_types": [
+        {
+          "id": "P4-1",
+          "label": "技术方案选型错误",
+          "description": "design.md 中选择的技术方案（算法、中间件、设计模式、并发模型等）不适合当前场景的需求特征（性能、一致性、扩展性等）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-1a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少各候选方案的适用场景、性能特征、已知限制等对比知识，或已有知识但未被召回到 Phase 10 SubAgent 上下文",
+              "evidence": "检查 knowledge.md 中是否有候选方案对比知识；若有记录，检查 ai-trace 是否召回",
+              "knowledge_base_category": "complex-clarification"
+            },
+            {
+              "sub_type": "P4-1b",
+              "root_cause": "R3",
+              "description": "候选方案的约束知识已充分召回，但模型在 Phase 10 设计时对需求特征与方案能力的匹配推理错误——高估了方案能力、忽略了关键约束条件、或未考虑非功能性需求",
+              "evidence": "检查 design.md 方案选型理由是否与 knowledge.md 中的方案约束一致；核对 requirement.md 非功能性需求是否被考虑"
+            },
+            {
+              "sub_type": "P4-1c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 中间推理已给出正确的方案选型，但在 Phase 11 汇总或 Phase 12~13 约束修正循环中选型结论被覆盖或变形",
+              "evidence": "对比 ai-trace 中 Phase 10 SubAgent 选型推理与 design.md 最终方案"
+            },
+            {
+              "sub_type": "P4-1d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁未检出方案选型与需求特征的不匹配，或 constraint-check.md 未覆盖方案适用性检查",
+              "evidence": "复查 design-review.md 选型相关检查项；检查 constraint-check.md 是否有方案适用性约束"
+            },
+            {
+              "sub_type": "P4-1e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与方案选型相关的约束确认问题（如\"该场景是否需要强一致性\"\"预期数据量级是多少\"），导致选型基于模糊的需求假设",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含方案选型相关的约束确认"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-2",
+          "label": "链路改动梳理错误",
+          "description": "design.md 第一章改动链路梳理中，改动点的入口-链路-影响范围与 current-state.md 不一致或遗漏",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-2a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少改动点的共用/复用关系记录，或 current-state.md §4 同链路波及信息未被加载，导致 SubAgent 梳理改动链路时缺失关键线索",
+              "evidence": "检查 knowledge.md / current-state.md §4 中是否有共用关系记录"
+            },
+            {
+              "sub_type": "P4-2b",
+              "root_cause": "R3",
+              "description": "共用关系知识已充分召回，但模型在 Phase 10 梳理改动链路时推理不充分——未识别间接依赖、共用逻辑的其他调用方遗漏、或改动影响范围判断有误",
+              "evidence": "对比 current-state.md §1/§4 与 design.md 第一章改动链路；检查间接依赖覆盖度"
+            },
+            {
+              "sub_type": "P4-2c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已正确梳理的改动链路在 Phase 11 汇总时被截断或遗漏，多个 SubAgent 结果合并时链路信息冲突或丢失",
+              "evidence": "对比 ai-trace 中 Phase 10 各 SubAgent 改动链路结论与 design.md 第一章最终内容"
+            },
+            {
+              "sub_type": "P4-2d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁未检出改动链路与 current-state.md 的不一致，或未对比 §4 同链路波及范围",
+              "evidence": "复查 design-review.md 改动范围相关检查项"
+            },
+            {
+              "sub_type": "P4-2e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与改动影响范围相关的确认问题（如\"该模块是否有其他调用方\"\"数据结构变更是否影响其他服务\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含改动范围相关提问"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-3",
+          "label": "设计项遗漏",
+          "description": "design.md 第二~六章中缺少 requirement.md Story/AC 要求的设计项",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-3a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少将该 AC 转化为设计方案所需的技术知识，或已有知识但未被召回到 Phase 10 SubAgent 上下文",
+              "evidence": "检查 knowledge.md 中是否有相关技术知识；逐项对比 requirement.md AC 清单与 design.md 设计项覆盖范围"
+            },
+            {
+              "sub_type": "P4-3b",
+              "root_cause": "R3",
+              "description": "技术知识已充分召回，但模型在 Phase 10 将 AC 映射到设计项时推理遗漏——未为某些 AC 生成设计方案、跨模块交互点未识别、或非功能性需求的设计项未生成",
+              "evidence": "逐项对比 requirement.md AC 清单与 design.md 设计项；检查跨模块交互和非功能性需求覆盖"
+            },
+            {
+              "sub_type": "P4-3c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已生成的设计项在 Phase 11 汇总或 Phase 12~13 约束修正循环中被截断或遗漏",
+              "evidence": "对比 ai-trace 中 Phase 10 各 SubAgent 设计项集合与 design.md 最终设计项清单"
+            },
+            {
+              "sub_type": "P4-3d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"AC 覆盖度\"检查维度未发现 design.md 与 requirement.md AC 清单的差距",
+              "evidence": "复查 design-review.md AC 覆盖度检查项；对比 AC 清单与设计项覆盖范围"
+            },
+            {
+              "sub_type": "P4-3e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含将 AC 转化为设计方案所需的技术细节确认（如\"该接口的幂等策略是什么\"\"跨模块调用的超时策略\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含相关技术细节确认"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P4-4",
+          "label": "设计项逻辑错误",
+          "description": "design.md 中已记录的设计项逻辑与 requirement.md AC 要求不符或存在逻辑缺陷",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-4a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少该设计项涉及的业务逻辑细节（如状态流转约束、条件判断的优先级规则、边界值定义），或已有知识但未被召回",
+              "evidence": "检查 knowledge.md 中是否有相关业务逻辑细节；对比 design.md 设计逻辑与 requirement.md AC"
+            },
+            {
+              "sub_type": "P4-4b",
+              "root_cause": "R3",
+              "description": "业务逻辑知识已充分召回，但模型在 Phase 10 设计时推理错误——条件分支逻辑取反、状态流转设计与 requirement.md 状态机不一致、或边界条件处理逻辑有缺陷",
+              "evidence": "对比 design.md 设计逻辑与 requirement.md 对应 AC 的预期行为；检查条件分支和边界处理"
+            },
+            {
+              "sub_type": "P4-4c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 中间推理已给出正确的设计逻辑，但在 Phase 11 汇总或 Phase 12~13 约束修正循环中逻辑被变形或覆盖",
+              "evidence": "对比 ai-trace 中 Phase 10 SubAgent 设计推理与 design.md 最终逻辑"
+            },
+            {
+              "sub_type": "P4-4d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"AC-设计一致性\"检查维度未发现设计逻辑与 AC 要求的不一致",
+              "evidence": "复查 design-review.md AC-设计一致性检查项"
+            },
+            {
+              "sub_type": "P4-4e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与设计逻辑相关的歧义确认（如\"AC 中'优先级最高'指绝对优先还是加权优先\"\"边界值是否包含等于\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含逻辑歧义相关确认"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-5",
+          "label": "设计项描述模糊",
+          "description": "design.md 中设计项的描述不够精确，导致 N5 编码计划或 AI Coding 产生歧义实现",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-5a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少使设计描述精确化所需的技术细节（如具体的校验规则、精确的算法参数、协议规格），或已有知识但未被召回",
+              "evidence": "检查 knowledge.md 中是否有相关技术细节记录"
+            },
+            {
+              "sub_type": "P4-5b",
+              "root_cause": "R3",
+              "description": "技术细节知识已充分召回，但模型在 Phase 10 生成设计描述时使用了模糊表述——未明确输入输出规格、算法步骤不够详细、或未量化性能/容量等约束参数",
+              "evidence": "检查 design.md 中是否存在\"适当\"\"合理\"\"必要时\"等模糊表述；验证每个设计项是否有明确的输入输出和处理逻辑"
+            },
+            {
+              "sub_type": "P4-5c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已给出精确的设计描述，但在 Phase 11 汇总时为压缩篇幅而简化了关键细节，或 Phase 12~13 循环中描述被泛化",
+              "evidence": "对比 ai-trace 中 Phase 10 SubAgent 设计描述与 design.md 最终描述的精确程度"
+            },
+            {
+              "sub_type": "P4-5d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"设计可执行性\"检查维度未标记模糊描述项",
+              "evidence": "复查 design-review.md 设计可执行性检查项"
+            },
+            {
+              "sub_type": "P4-5e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与模糊设计项相关的细节确认（如\"该校验的具体规则是什么\"\"超时阈值是多少\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含相关细节确认"
+            }
+          ],
+          "evidence_type_default": "ambiguity"
+        },
+        {
+          "id": "P4-6",
+          "label": "接口变更遗漏",
+          "description": "design-interface.md 中缺少 design.md 设计项所需的接口变更（新增/修改的 HTTP/RPC/MQ 接口定义）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-6a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少现有接口的完整规格（字段列表、类型约束、版本信息），或已有知识但未被召回到 Phase 14 上下文",
+              "evidence": "检查 knowledge.md 中是否有现有接口规格记录"
+            },
+            {
+              "sub_type": "P4-6b",
+              "root_cause": "R3",
+              "description": "现有接口知识已充分召回，但模型在 Phase 14 从 design.md 推导接口变更时遗漏——未识别设计项需要新增的接口、未追踪到需要修改的参数字段、或内部模块接口被忽略",
+              "evidence": "逐项对比 design.md 设计项与 design-interface.md 接口定义；检查是否有设计项涉及接口交互但无对应接口定义"
+            },
+            {
+              "sub_type": "P4-6c",
+              "root_cause": "R2",
+              "description": "Phase 14 生成 design-interface.md 时中间推理已识别的接口变更在写入时被截断或遗漏",
+              "evidence": "对比 ai-trace 中 Phase 14 推理过程与 design-interface.md 最终内容"
+            },
+            {
+              "sub_type": "P4-6d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"接口完整性\"检查维度未发现 design-interface.md 与 design.md 的接口需求差距",
+              "evidence": "复查 design-review.md 接口完整性检查项"
+            },
+            {
+              "sub_type": "P4-6e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与接口变更相关的确认（如\"该接口是否需要新增字段\"\"MQ 消息体格式是否变更\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含接口相关确认"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P4-7",
+          "label": "接口变更错误",
+          "description": "design-interface.md 中已记录的接口变更存在错误（字段类型/名称/约束与 design.md 设计意图不符）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-7a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少团队接口规范（如命名约定、类型约束、版本兼容策略），或已有知识但未被召回",
+              "evidence": "检查 knowledge.md 中是否有团队接口规范记录"
+            },
+            {
+              "sub_type": "P4-7b",
+              "root_cause": "R3",
+              "description": "接口规范知识已充分召回，但模型在 Phase 14 生成接口定义时推理错误——字段类型推导有误、参数约束与 design.md 设计意图不一致、或兼容策略判断错误",
+              "evidence": "对比 design-interface.md 接口定义与 design.md 对应设计项的数据类型/约束要求"
+            },
+            {
+              "sub_type": "P4-7c",
+              "root_cause": "R2",
+              "description": "Phase 14 中间推理已给出正确的接口定义，但在写入 design-interface.md 时字段类型/约束被变形",
+              "evidence": "对比 ai-trace 中 Phase 14 推理过程与 design-interface.md 最终接口定义"
+            },
+            {
+              "sub_type": "P4-7d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"接口一致性\"检查维度未发现接口定义与 design.md 设计意图的不匹配",
+              "evidence": "复查 design-review.md 接口一致性检查项"
+            },
+            {
+              "sub_type": "P4-7e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与接口细节相关的确认（如\"该字段的类型约束\"\"版本兼容策略\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含接口细节确认"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-8",
+          "label": "存储变更错误",
+          "description": "design.md 中数据库/缓存/索引的变更设计存在错误",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-8a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少数据库规范（字段类型约定、索引设计规范、分库分表规则）或缓存最佳实践，或已有知识但未被召回",
+              "evidence": "检查 knowledge.md 中是否有存储层规范/约束记录",
+              "knowledge_base_category": "not-to"
+            },
+            {
+              "sub_type": "P4-8b",
+              "root_cause": "R3",
+              "description": "存储规范知识已充分召回，但模型在 Phase 10 设计存储方案时推理错误——字段类型/长度与数据特征不匹配、索引字段选择或顺序不当、或缓存策略与一致性需求冲突",
+              "evidence": "检查 design.md 存储变更设计与 knowledge.md 存储规范的一致性；验证字段类型/索引/缓存策略合理性"
+            },
+            {
+              "sub_type": "P4-8c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已给出正确的存储设计，但在 Phase 11 汇总或约束修正循环中被变形",
+              "evidence": "对比 ai-trace 中 Phase 10 存储设计与 design.md 最终存储方案"
+            },
+            {
+              "sub_type": "P4-8d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁未检出存储设计的不合理项，或 constraint-check.md 未覆盖存储约束检查",
+              "evidence": "复查 design-review.md 存储设计相关检查项；检查 constraint-check.md 存储约束"
+            },
+            {
+              "sub_type": "P4-8e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与存储设计相关的约束确认（如\"数据量预估\"\"是否需要分库分表\"\"缓存一致性要求\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含存储相关约束确认"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-9",
+          "label": "存储变更遗漏",
+          "description": "design.md 中缺少 requirement.md 要求的存储变更设计",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-9a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少现有表结构、索引、缓存键的完整记录，或 current-state.md §5 数据流兼容信息未被加载",
+              "evidence": "检查 knowledge.md / current-state.md §5 中是否有完整的存储结构记录"
+            },
+            {
+              "sub_type": "P4-9b",
+              "root_cause": "R3",
+              "description": "现有存储结构知识已充分召回，但模型在 Phase 10 推导存储变更时遗漏——未识别新需求所需的新增字段/表、未发现缓存键需要变更、或数据迁移需求未被推导",
+              "evidence": "逐项对比 requirement.md 数据相关 AC 与 design.md 存储变更设计"
+            },
+            {
+              "sub_type": "P4-9c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已识别的存储变更在 Phase 11 汇总时被遗漏",
+              "evidence": "对比 ai-trace 中 Phase 10 存储变更与 design.md 最终存储方案"
+            },
+            {
+              "sub_type": "P4-9d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"存储完整性\"检查维度未发现 design.md 与 requirement.md 数据需求的差距",
+              "evidence": "复查 design-review.md 存储完整性检查项"
+            },
+            {
+              "sub_type": "P4-9e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与存储变更相关的确认（如\"是否需要新建表\"\"现有字段是否满足新需求\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含存储需求相关确认"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P4-10",
+          "label": "稳定性方案遗漏",
+          "description": "design.md 第五章稳定性设计或 release-checklist.md 中缺少关键的稳定性保障措施",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-10a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少团队/公司的稳定性规范（如\"核心链路必须配置熔断\"\"新增接口必须配置限流\"），或已有知识但未被召回",
+              "evidence": "检查 knowledge.md 中是否有稳定性规范/检查清单记录",
+              "knowledge_base_category": "not-to"
+            },
+            {
+              "sub_type": "P4-10b",
+              "root_cause": "R3",
+              "description": "稳定性规范已充分召回，但模型在 Phase 10 设计稳定性方案时推理遗漏——未识别需要熔断的核心链路、未为新增接口设计限流、或未设计数据变更的回滚方案",
+              "evidence": "逐项对比 design.md 改动点与第五章稳定性措施；检查 release-checklist.md 覆盖度"
+            },
+            {
+              "sub_type": "P4-10c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已设计的稳定性措施在 Phase 11 汇总或 Phase 16 生成 release-checklist.md 时被遗漏",
+              "evidence": "对比 ai-trace 中 Phase 10 稳定性设计与 design.md 第五章/release-checklist.md 最终内容"
+            },
+            {
+              "sub_type": "P4-10d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"稳定性覆盖度\"检查维度未发现关键稳定性措施的缺失",
+              "evidence": "复查 design-review.md 稳定性覆盖度检查项"
+            },
+            {
+              "sub_type": "P4-10e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与稳定性相关的确认（如\"该链路的 SLA 要求\"\"是否需要灰度\"\"回滚策略\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含稳定性要求确认"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P4-11",
+          "label": "稳定性方案错误",
+          "description": "design.md 第五章或 release-checklist.md 中已记录的稳定性方案存在错误",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-11a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少历史稳定性事件经验（如\"该服务历史峰值 QPS 为 X\"\"熔断阈值建议设为 Y%\"），或已有知识但未被召回",
+              "evidence": "检查 knowledge.md 中是否有历史稳定性数据/经验记录"
+            },
+            {
+              "sub_type": "P4-11b",
+              "root_cause": "R3",
+              "description": "历史经验知识已充分召回，但模型在设计稳定性参数时推理错误——阈值计算有误、策略与场景不匹配、或降级方案的替代逻辑设计不完整",
+              "evidence": "检查 design.md 第五章稳定性参数是否与 knowledge.md 中的历史数据/规范一致"
+            },
+            {
+              "sub_type": "P4-11c",
+              "root_cause": "R2",
+              "description": "Phase 10 SubAgent 已给出正确的稳定性参数/策略，但在多轮处理中被变形",
+              "evidence": "对比 ai-trace 中稳定性设计推理与 design.md 最终稳定性方案"
+            },
+            {
+              "sub_type": "P4-11d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"稳定性合理性\"检查维度未发现参数/策略的不合理",
+              "evidence": "复查 design-review.md 稳定性合理性检查项"
+            },
+            {
+              "sub_type": "P4-11e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与稳定性参数相关的确认（如\"历史峰值 QPS\"\"可接受的错误率\"\"灰度比例策略\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含稳定性参数相关确认"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-12",
+          "label": "架构约束遗漏",
+          "description": "design.md 中未识别或未遵守 constraint-check.md 中记录的架构约束",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-12a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中缺少架构约束记录，或 constraint-check.md 本身遗漏了关键约束（Phase 7 知识加载不充分），或约束已记录但未被召回到 Phase 10 SubAgent 上下文",
+              "evidence": "检查 constraint-check.md 是否有完整的架构约束记录；检查 ai-trace 中 Phase 10 SubAgent 是否加载了 constraint-check.md",
+              "knowledge_base_category": "not-to"
+            },
+            {
+              "sub_type": "P4-12b",
+              "root_cause": "R3",
+              "description": "架构约束已充分召回，但模型在 Phase 10 设计时未正确应用约束——设计方案违反了模块边界规则、数据隔离要求或技术栈限制，Phase 12~13 约束修正循环也未纠正",
+              "evidence": "逐项对比 constraint-check.md 约束条目与 design.md 设计方案；检查 Phase 12~13 修正记录"
+            },
+            {
+              "sub_type": "P4-12c",
+              "root_cause": "R2",
+              "description": "Phase 12~13 约束修正循环中已识别的约束违反项在修正后又被后续循环覆盖，或修正结果未正确写入 design.md",
+              "evidence": "对比 ai-trace 中 Phase 12~13 各轮循环的修正结果与 design.md 最终内容"
+            },
+            {
+              "sub_type": "P4-12d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁的\"约束合规\"检查维度未发现 design.md 与 constraint-check.md 的不一致",
+              "evidence": "复查 design-review.md 约束合规检查项；对比 constraint-check.md 约束清单与 design.md"
+            },
+            {
+              "sub_type": "P4-12e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含与架构约束相关的确认（如\"是否允许跨模块直接调用\"\"数据隔离要求\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含架构约束相关确认"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P4-13",
+          "label": "架构约束错误",
+          "description": "constraint-check.md 中记录的架构约束本身存在错误或与实际系统约束不符",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-13a",
+              "root_cause": "R1",
+              "description": "knowledge.md 中记录的架构约束已过时（已废弃但未更新），或缺少最新的架构决策记录，导致 Phase 7 生成的 constraint-check.md 包含错误约束",
+              "evidence": "检查 knowledge.md / .wiki 中架构约束的最后更新时间；对比约束描述与当前代码架构",
+              "knowledge_base_category": "not-to"
+            },
+            {
+              "sub_type": "P4-13b",
+              "root_cause": "R3",
+              "description": "架构知识已充分召回，但模型在 Phase 7 推导约束时推理错误——约束条件过严/过松、约束之间存在逻辑矛盾、或从代码/文档推导出的约束与实际系统行为不一致",
+              "evidence": "验证 constraint-check.md 每条约束与当前代码架构的一致性；检查约束间是否存在矛盾"
+            },
+            {
+              "sub_type": "P4-13c",
+              "root_cause": "R2",
+              "description": "Phase 7 中间推理已给出正确的约束描述，但在写入 constraint-check.md 时约束条件被变形或简化导致含义偏移",
+              "evidence": "对比 ai-trace 中 Phase 7 推理过程与 constraint-check.md 最终约束描述"
+            },
+            {
+              "sub_type": "P4-13d",
+              "root_cause": "R4",
+              "description": "Phase 15 design-review.md 质量门禁未验证 constraint-check.md 约束本身的正确性，仅检查了 design.md 是否遵守约束",
+              "evidence": "复查 design-review.md 是否有\"约束正确性\"检查维度"
+            },
+            {
+              "sub_type": "P4-13e",
+              "root_cause": "R5",
+              "description": "Phase 8 技术澄清未包含对 constraint-check.md 约束正确性的确认（如\"该模块边界约束是否仍然有效\"\"这些技术栈限制是否最新\"）",
+              "evidence": "检查 Phase 8 技术澄清记录中是否包含约束正确性相关确认"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P4-14",
+          "label": "AI 未遵循技术方案",
+          "description": "design.md 技术方案正确（设计项完整且与 requirement.md 一致），但 AI 生成的代码（before-side）未按 design.md 的设计项实现。属于 AI 执行偏差，非产物缺陷。root_cause 通过 R1-R5 核验流程判定",
+          "root_cause_variants": [
+            {
+              "sub_type": "P4-14a",
+              "root_cause": "R1",
+              "description": "AI 缺少实现设计项所需的领域知识（如特定框架用法、业务规则约束），导致虽然 design.md 有明确设计但 AI 不知道如何正确实现",
+              "evidence": "检查 domain-knowledge.md / evidence.md 是否有相关领域知识记录；若有记录，检查 ai-trace 是否召回",
+              "knowledge_base_category": ["not-to", "how-to"]
+            },
+            {
+              "sub_type": "P4-14b",
+              "root_cause": "R2",
+              "description": "AI 在中间推理过程中已正确理解 design.md 设计项，但在代码生成阶段步骤遗漏或截断，部分设计项未被实现",
+              "evidence": "对比 ai-trace 中间推理结果与 before-side 最终代码，检查是否有设计项在生成过程中被遗漏"
+            },
+            {
+              "sub_type": "P4-14c",
+              "root_cause": "R3",
+              "description": "AI 在代码生成阶段未按 design.md 中 D-xx 的行为契约实现逻辑（接口签名、参数定义、数据模型、计算公式等偏离设计项）",
+              "evidence": "对比 before-side 代码与 design.md 对应 D-xx 的行为契约和伪代码，检查 AI 是否按设计实现"
+            },
+            {
+              "sub_type": "P4-14d",
+              "root_cause": "R3",
+              "description": "AI 在代码生成阶段未按 design.md 中 DEC-xx 的技术选型决策实现，选择了与设计决策不同的方案",
+              "evidence": "对比 before-side 代码实现方案与 design.md DEC-xx 选型决策，检查 AI 是否遵循了选型结论"
+            },
+            {
+              "sub_type": "P4-14e",
+              "root_cause": "R3",
+              "description": "AI 在代码生成阶段未按 design-interface.md 的接口定义实现接口签名、DTO 字段或 Thrift IDL",
+              "evidence": "对比 before-side 代码中的接口定义与 design-interface.md，检查签名、参数、DTO 字段一致性"
+            },
+            {
+              "sub_type": "P4-14f",
+              "root_cause": "R4",
+              "description": "design-review.md Gate 检查未拦截 AI 代码与 design.md 的偏差，或编码阶段门禁未检测到 before-side 与设计项的不一致",
+              "evidence": "复查 design-review.md Gate 检查项及判定结论；检查编码阶段是否有门禁校验 before-side 与 design.md 的一致性"
+            },
+            {
+              "sub_type": "P4-14g",
+              "root_cause": "R5",
+              "description": "design.md 设计项描述不够清晰或存在歧义，导致 AI 误解了设计意图（如伪代码模糊、接口约束不明确），AI 按自己的理解实现但偏离了设计本意",
+              "evidence": "检查 design.md D-xx 描述是否有歧义；检查 clarification-log.md 中是否有针对该设计项的澄清记录"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        }
+      ],
+      "decision_tree": {
+        "nodes": [
+          {
+            "node": 1,
+            "question": "design.md 中 DEC-xx 选型是否与 current-state.md 系统能力、domain-knowledge.md 方案约束、requirement.md §2.2 范围约束、§2.4 核心操作流、§2.5 状态机一致？（检查 DEC-xx 引用的 current-state.md §章节、knowledge.md 条目、requirement.md §2.2/§2.4/§2.5；当选型与 current-state.md 不一致时，交叉验证 current-state.md 是否过时）",
+            "yes_next": 2,
+            "no_type": "P4-1"
+          },
+          {
+            "node": 2,
+            "question": "design.md §2 整体链路与改动全景是否与 current-state.md 一致且完整？§2.1 系统边界图的 ★新增/△修改/○复用 标注是否与 current-state.md §1 对应（○复用 标注需 after-side 交叉验证：人类修改了则标注有误）？§2.2 核心业务链路是否与 requirement.md §2.4 操作流和 §2.5 状态机一致，且关键子流程是否与 DEC-xx 选型匹配？当标注与 current-state.md 不一致时，交叉验证 current-state.md 是否过时",
+            "yes_next": 3,
+            "no_type": "P4-2"
+          },
+          {
+            "node": 3,
+            "question": "requirement.md §4 中每个 US-xx 的 AC 是否在 design.md §3 中有对应 D-xx？同时检查 requirement.md §2.2 In Scope 的场景是否在 design.md §2.2 核心业务链路中有对应路径？",
+            "yes_next": 4,
+            "no_type": "P4-3"
+          },
+          {
+            "node": 4,
+            "question": "D-xx 的逻辑是否与对应 US-xx 的 AC Given/When/Then 一致？同时检查 D-xx 的流程逻辑是否与 §2.2 核心业务链路图中对应节点的路径一致？",
+            "yes_next": 5,
+            "no_type": "P4-4"
+          },
+          {
+            "node": 5,
+            "question": "design.md 中设计项描述是否精确到可直接编码？（输入输出规格/算法步骤/性能参数是否明确，无\"适当\"\"合理\"等模糊词）",
+            "yes_next": 6,
+            "no_type": "P4-5"
+          },
+          {
+            "node": 6,
+            "question": "design-interface.md 是否覆盖 design.md §3 所有 D-xx 涉及的接口交互？同时检查接口定义是否与 §2.1 系统边界图中的外部依赖一致？",
+            "yes_next": 7,
+            "no_type": "P4-6"
+          },
+          {
+            "node": 7,
+            "question": "design-interface.md 中接口定义的字段类型/名称/约束是否与 D-xx 设计意图一致？（对比 D-xx 数据模型描述 + 数据传播表）",
+            "yes_next": 8,
+            "no_type": "P4-7"
+          },
+          {
+            "node": 8,
+            "question": "design.md 中数据库/缓存/索引的变更设计是否正确？（字段类型/索引选择/缓存策略是否合理）",
+            "yes_next": 9,
+            "no_type": "P4-8"
+          },
+          {
+            "node": 9,
+            "question": "design.md 是否包含 requirement.md 要求的所有存储变更设计？（新增字段/表/缓存键/数据迁移是否覆盖）",
+            "yes_next": 10,
+            "no_type": "P4-9"
+          },
+          {
+            "node": 10,
+            "question": "design.md 第五章/release-checklist.md 是否包含关键稳定性保障措施？（熔断/限流/降级/回滚/灰度是否覆盖）",
+            "yes_next": 11,
+            "no_type": "P4-10"
+          },
+          {
+            "node": 11,
+            "question": "design.md 第五章/release-checklist.md 中已记录的稳定性方案是否正确？（阈值/策略/降级替代逻辑是否合理）",
+            "yes_next": 12,
+            "no_type": "P4-11"
+          },
+          {
+            "node": 12,
+            "question": "design.md 是否遵守了 constraint-check.md 中的架构约束？（检查 D-xx 的\"关联决策/约束\"字段引用的 C-xx；检查 §2.2 核心业务链路图关键节点是否遵守 C-xx 约束）",
+            "yes_next": 13,
+            "no_type": "P4-12"
+          },
+          {
+            "node": 13,
+            "question": "constraint-check.md 中记录的架构约束本身是否正确？（约束是否过时/矛盾/与实际系统不符）",
+            "yes_next": 14,
+            "no_type": "P4-13"
+          },
+          {
+            "node": 14,
+            "question": "AI 代码是否遵循了产物的行为契约？（对比 before-side 代码与 design.md 设计项和选型决策、design-interface.md 接口定义，如偏离则为执行偏差）",
+            "yes_next": null,
+            "no_type": "P4-14"
+          }
+        ],
+        "entry_map": {
+          "existence": 1,
+          "correctness": 4,
+          "completeness": 6,
+          "execution_deviation": 14
+        }
+      }
+    },
+    {
+      "id": "P3",
+      "label": "N3 需求澄清层问题",
+      "stage": "N3",
+      "stage_name": "需求澄清",
+      "gate_file": "requirement-gate.md",
+      "allowed_root_causes": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "problem_types": [
+        {
+          "id": "P3-1",
+          "label": "范围界定偏差",
+          "description": "requirement.md 第二章 In Scope / Out Scope / Reused Baseline 的划分与 N2 产出 current-state.md 不一致",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-1a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md / prd-context.md 中缺少模块间数据依赖关系或产品迭代分期规划的领域知识，或已有知识但未被召回",
+              "evidence": "检查 domain-knowledge.md / prd-context.md 是否有模块依赖或分期规划记录；若有记录，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-1b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 2 将 current-state.md 转化为范围确认草案时判断错误——未从能力缺口提取出应纳入的功能点，或差异项被误判为 Reused Baseline",
+              "evidence": "对比 current-state.md 流程能力缺口/同链路波及/差异澄清点三章节与 requirement.md In/Out Scope 段落，检查覆盖完整性"
+            },
+            {
+              "sub_type": "P3-1c",
+              "root_cause": "R2",
+              "description": "Phase 2 人工确认的范围划分正确，但在 Phase 7 写入 requirement.md 第二章时部分确认项被截断、遗漏或混淆",
+              "evidence": "对比 ai-trace 中 Phase 2 确认记录与 requirement.md 最终 In/Out Scope 段落"
+            },
+            {
+              "sub_type": "P3-1d",
+              "root_cause": "R4",
+              "description": "Phase 8 SubAgent C 的 requirement-gate.md Scope 完整性检查标记 pass 但实际存在范围偏差，或 business-review.md 未发现场景差集",
+              "evidence": "复查 requirement-gate.md Scope 完整性检查项及判定结论；检查 business-review.md 覆盖场景与 PRD 场景的差集分析"
+            },
+            {
+              "sub_type": "P3-1e",
+              "root_cause": "R5",
+              "description": "Phase 2 人工确认点 1 中，PRD 对某功能的分期归属描述不明确，模型未就该功能的本期/二期归属向 PM 追问确认",
+              "evidence": "检查 clarification-log.md 中是否有针对该功能范围归属的澄清记录及结论"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-2",
+          "label": "核心操作流遗漏或错误",
+          "description": "requirement.md 第三章核心操作流（Phase 4 产出的业务流程图 Mermaid）中，关键流程节点、分支或步骤缺失或错误",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-2a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md 中缺少该业务场景的标准操作流程知识（如\"该类交易必须经过风控审核环节\"\"该业务涉及异步回调确认步骤\"），或已有知识但未被召回",
+              "evidence": "检查 domain-knowledge.md 中是否有相关业务流程知识；若有记录，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-2b",
+              "root_cause": "R3",
+              "description": "相关知识已充分召回，但模型在 Phase 4 Step 1 从 PRD + current-state.md 推导操作流时推理不充分——未展开异常分支（超时/失败/降级/回滚）、未识别条件分支、或流程步骤顺序与业务实际不符",
+              "evidence": "对比 PRD 操作流程描述与 requirement.md 第三章 Mermaid 流程图；检查异常分支覆盖度"
+            },
+            {
+              "sub_type": "P3-2c",
+              "root_cause": "R2",
+              "description": "模型在中间推理中已识别的流程节点或分支在写入 requirement.md 第三章 Mermaid 时被截断或遗漏，或 Mermaid 语法错误导致流程图渲染不完整",
+              "evidence": "对比 ai-trace 中间推理结果与 requirement.md 第三章最终 Mermaid 内容"
+            },
+            {
+              "sub_type": "P3-2d",
+              "root_cause": "R4",
+              "description": "Phase 5 人工确认点未发现操作流的遗漏或错误，或研发确认环节未指出流程图与业务实际不符",
+              "evidence": "检查 Phase 5 人工确认记录中是否有操作流完整性反馈"
+            },
+            {
+              "sub_type": "P3-2e",
+              "root_cause": "R5",
+              "description": "Phase 3 生成的 clarification-questions.md 中未包含与操作流程相关的澄清问题，导致操作流中的模糊点未得到用户确认",
+              "evidence": "检查 clarification-questions.md 中是否包含针对操作流程的提问；检查 clarification-log.md 中用户是否对流程有补充说明"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-3",
+          "label": "状态机遗漏或错误",
+          "description": "requirement.md 第三章状态机（Phase 4 产出的状态转换 Mermaid）中，关键状态、转换边或触发条件缺失或错误",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-3a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md 中缺少该业务实体的完整状态流转规则（如\"订单在已支付状态才能发起退款\"\"该状态必须经过 X 状态才能到达 Y 状态\"），或已有知识但未被召回",
+              "evidence": "检查 domain-knowledge.md / current-state.md §2 中是否有完整的状态流转规则；若有记录，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-3b",
+              "root_cause": "R3",
+              "description": "状态流转知识已充分召回，但模型在 Phase 4 Step 2 从 current-state.md §2 + PRD 推导目标状态机时推理不充分——未推导出所有中间状态、异常转换边（超时/失败/回滚）未展开、或转换触发条件与业务规则不一致",
+              "evidence": "对比 current-state.md §2 状态流转描述与 requirement.md 第三章状态机 Mermaid；检查异常转换边覆盖度"
+            },
+            {
+              "sub_type": "P3-3c",
+              "root_cause": "R2",
+              "description": "模型在中间推理中已识别的状态节点或转换边在写入 requirement.md 第三章 Mermaid 时被截断或遗漏，或 Mermaid 语法错误导致状态机渲染不完整",
+              "evidence": "对比 ai-trace 中间推理结果与 requirement.md 第三章最终状态机 Mermaid 内容"
+            },
+            {
+              "sub_type": "P3-3d",
+              "root_cause": "R4",
+              "description": "Phase 5 人工确认点未发现状态机的遗漏或错误，或研发确认环节未指出状态转换图与业务实际或 current-state.md 描述不符",
+              "evidence": "检查 Phase 5 人工确认记录中是否有状态机完整性/准确性反馈"
+            },
+            {
+              "sub_type": "P3-3e",
+              "root_cause": "R5",
+              "description": "Phase 3 生成的 clarification-questions.md 中未包含与状态流转相关的澄清问题，导致状态机中的模糊点未得到用户确认",
+              "evidence": "检查 clarification-questions.md 中是否包含针对状态流转的提问；检查 clarification-log.md 中用户是否对状态转换有补充说明"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-4",
+          "label": "用户故事遗漏",
+          "description": "requirement.md 第二章 In Scope 中的功能点在第四章没有对应用户故事（US）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-4a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md / prd-context.md 中缺少该业务场景的隐含规则（行业惯例或团队约定），或已有知识未召回",
+              "evidence": "检查 domain-knowledge.md / prd-context.md 是否有该业务场景隐含规则记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-4b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 6 Step 1 将 In Scope 功能点批量转化为故事时遗漏了部分功能点，或未将用户旅程中的备选流程展开为独立故事",
+              "evidence": "逐条比对 requirement.md In Scope 列表与第四章故事列表，检查是否有 In Scope 项无对应故事"
+            },
+            {
+              "sub_type": "P3-4c",
+              "root_cause": "R2",
+              "description": "Phase 6 Step 1 批量生成时 ai-trace 中间结果包含全部故事，但在写入 requirement.md 第四章过程中部分故事被截断、合并或遗漏",
+              "evidence": "对比 ai-trace 中间推理结果与 requirement.md 最终写入的故事列表"
+            },
+            {
+              "sub_type": "P3-4d",
+              "root_cause": "R4",
+              "description": "Phase 8 SubAgent C 的 requirement-gate.md 故事完整性检查标记 pass 但实际遗漏故事，或 Phase 6 SubAgent F-N Spec Review 未检查故事与 In Scope 的覆盖关系",
+              "evidence": "复查 requirement-gate.md 故事完整性检查项及判定结论；检查 story-review-summary.md 中是否有覆盖关系检查记录"
+            },
+            {
+              "sub_type": "P3-4e",
+              "root_cause": "R5",
+              "description": "Phase 3 SubAgent B 生成的澄清问题列表未覆盖该功能点，模型未就该功能点向用户提问，或提问了但用户回答遗漏而模型未追问",
+              "evidence": "检查 clarification-questions.md 和 clarification-log.md 中是否涉及该功能点的提问与回答"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P3-5",
+          "label": "用户故事错误",
+          "description": "requirement.md 第四章中用户故事的结构信息有误——dependency 字段缺失或标注错误，或故事描述（角色/目标/原因）与外部参照不一致",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-5a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md / prd-context.md 中缺少模块间依赖关系或业务规则知识，或已有知识未召回，导致 dependency 标注错误或故事描述偏差",
+              "evidence": "检查 domain-knowledge.md 中是否有模块依赖关系或业务规则记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-5b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 6 Step 1 将 PRD 功能描述转化为故事时对角色/目标/原因的理解出现偏差，或在标注 dependency 时推导错误",
+              "evidence": "对比 PRD 功能描述与 requirement.md 故事的角色-目标-原因；检查 dependency 字段与实际业务依赖关系是否一致"
+            },
+            {
+              "sub_type": "P3-5c",
+              "root_cause": "R2",
+              "description": "故事描述和 dependency 字段在 Phase 6 Step 1 初始生成时正确，但在 Phase 6 Step 5 Review 澄清或 Phase 7 补全 Spec 过程中被覆盖/混淆",
+              "evidence": "对比 ai-trace 各轮次 requirement.md 版本，检查故事描述或 dependency 是否在某轮被改错"
+            },
+            {
+              "sub_type": "P3-5d",
+              "root_cause": "R4",
+              "description": "Phase 6 SubAgent F-N Spec Review 未发现故事描述与外部参照不一致或未检查 dependency 字段正确性，requirement-gate.md 未拦截故事错误",
+              "evidence": "复查 story-review-summary.md 是否有针对该故事的 Review 记录；复查 requirement-gate.md 对应检查项"
+            },
+            {
+              "sub_type": "P3-5e",
+              "root_cause": "R5",
+              "description": "Phase 3 或 Phase 6 Step 5 人工确认点中，模型未就故事涉及的功能点向用户澄清，或用户回答后模型未将澄清结论准确反映到故事描述中",
+              "evidence": "检查 clarification-log.md 中是否有针对该故事功能点的澄清记录及结论"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-6",
+          "label": "AC 遗漏",
+          "description": "requirement.md 第四章中用户故事存在但 AC 列表不完整，缺少正常场景或边界/异常场景的验证条目",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-6a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md 中缺少该业务场景的边界值约定、异常处理惯例或幂等性约定，或已有知识未召回",
+              "evidence": "检查 domain-knowledge.md 中是否有对应边界规则、异常处理约定记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-6b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 6 Step 1 生成 AC 时未展开异常分支（超时/失败/降级/并发冲突），或未从 Phase 4 状态机 Mermaid 的失败转换边推导对应 AC",
+              "evidence": "检查 Phase 4 状态机/流程图 Mermaid 中的异常转换边是否有对应 AC；检查每个故事的 AC 列表是否覆盖正常路径和异常路径"
+            },
+            {
+              "sub_type": "P3-6c",
+              "root_cause": "R2",
+              "description": "Phase 6 Step 1 批量生成时 ai-trace 中间结果包含完整 AC 列表，但在写入 requirement.md 第四章时部分 AC 被截断或遗漏",
+              "evidence": "对比 ai-trace 中间推理结果与 requirement.md 最终写入的 AC 列表"
+            },
+            {
+              "sub_type": "P3-6d",
+              "root_cause": "R4",
+              "description": "Phase 8 SubAgent C 的 requirement-gate.md 边界覆盖检查标记 pass 但实际 AC 缺少异常/边界场景，或 Phase 6 SubAgent F-N Spec Review 未发现 AC 遗漏",
+              "evidence": "复查 requirement-gate.md 边界覆盖检查项及判定结论；检查 story-review-summary.md 中是否有 AC 完整性检查记录"
+            },
+            {
+              "sub_type": "P3-6e",
+              "root_cause": "R5",
+              "description": "Phase 3 SubAgent B 生成的澄清问题列表缺少 boundary 类别问题，未就边界值/异常分支向用户确认",
+              "evidence": "检查 clarification-questions.md 中是否包含针对该故事 boundary 类别的提问；检查 clarification-log.md 中用户回答是否写入 AC"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P3-7",
+          "label": "AC 错误",
+          "description": "requirement.md 第四章中 AC 内容与外部参照（PRD 原文、current-state.md 规则、clarification-log.md 用户确认结论）不一致",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-7a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md / prd-context.md 中缺少该业务领域的规则细节（如状态流转优先级、互斥条件约定、计算公式的取值规则），或已有知识但未被召回",
+              "evidence": "检查 domain-knowledge.md 中是否有该业务规则细节记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-7b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型对 PRD 原文或 clarification-log.md 中用户确认结论的理解出现偏差——将\"或\"理解为\"且\"、将\"可选\"理解为\"必须\"、将互斥关系理解为共存、revised 结论未反映",
+              "evidence": "对比 PRD 原文措辞与 requirement.md AC 措辞，检查逻辑连接词/限定词/场景范围；对比 clarification-log.md 用户回答与 AC 内容"
+            },
+            {
+              "sub_type": "P3-7c",
+              "root_cause": "R2",
+              "description": "模型在 Phase 6 Step 1 或 Phase 6 Step 5 Review 澄清后已正确理解规则并生成了正确的 AC，但在多轮修改或写入过程中描述被截断/简化（限定词\"仅限/最多/不超过\"在转述时丢失）",
+              "evidence": "对比 ai-trace 各轮次推理结果与 requirement.md 最终 AC 内容，检查规则是否在某轮被改错"
+            },
+            {
+              "sub_type": "P3-7d",
+              "root_cause": "R4",
+              "description": "Phase 8 SubAgent C 的 requirement-gate.md 语义一致性检查标记 pass 但未发现 AC 与 PRD/用户确认结论的偏差，或 Phase 6 SubAgent F-N Spec Review 未检查 AC 规则正确性",
+              "evidence": "复查 requirement-gate.md 语义一致性检查项及判定结论；检查 story-review-summary.md 中是否有针对该 AC 的 Review"
+            },
+            {
+              "sub_type": "P3-7e",
+              "root_cause": "R5",
+              "description": "PRD 原文存在歧义或多义表述，模型未在 Phase 3 澄清环节就该歧义向用户确认，或用户回答后模型未将澄清结论准确反映到 AC 中",
+              "evidence": "检查 clarification-log.md 中是否有针对该 AC 涉及的 PRD 歧义点的澄清记录及结论"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-8",
+          "label": "用户故事与 AC 不一致",
+          "description": "requirement.md 第四章中同一用户故事的描述（角色/目标/原因）与 AC 验证条件错位——故事描述的是 A 目标但 AC 验证的是 B 条件",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-8a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md 中缺少该业务场景的功能边界知识，导致模型在生成故事和 AC 时对功能范围的理解不一致",
+              "evidence": "检查 domain-knowledge.md 中是否有该功能场景边界的记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-8b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 6 Step 1 同一批次生成故事和 AC 时，故事的角色-目标-原因描述的是 A 目标，AC 验证条件却指向 B 行为，模型未做故事内一致性自检",
+              "evidence": "对每个故事检查角色-目标-原因描述与 AC 的 Given/When/Then 是否指向同一行为"
+            },
+            {
+              "sub_type": "P3-8c",
+              "root_cause": "R2",
+              "description": "Phase 6 Step 1 初始生成时故事描述与 AC 验证条件一致，但在 Phase 6 Step 5 Review 澄清或 Phase 7 补全 Spec 时修改了故事描述（角色/目标/原因），但未同步更新对应 AC",
+              "evidence": "对比 ai-trace 各轮次 requirement.md 版本，检查故事描述与 AC 是否在某轮修改后产生不一致"
+            },
+            {
+              "sub_type": "P3-8d",
+              "root_cause": "R4",
+              "description": "Phase 6 SubAgent F-N Spec Review 未检查故事描述与 AC 的一致性，Phase 8 SubAgent C 的 requirement-gate.md 无故事-AC 一致性检查项或标记 pass",
+              "evidence": "复查 story-review-summary.md 中是否有故事-AC 一致性检查记录；复查 requirement-gate.md 对应检查项"
+            },
+            {
+              "sub_type": "P3-8e",
+              "root_cause": "R5",
+              "description": "Phase 6 Step 5 人工确认点中，用户只确认了 AC 部分而未注意故事描述已变更，或模型在确认后只更新了一方未同步另一方",
+              "evidence": "检查 clarification-log.md 中 Phase 6 相关条目，确认用户确认时是否同时覆盖了故事描述和 AC"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-9",
+          "label": "跨故事矛盾",
+          "description": "requirement.md 第四章中不同故事的 AC 或业务规则对同一字段、同一规则给出不同取值",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-9a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md 中缺少业务规则优先级或冲突解决策略的记录，或已有知识但未被召回，导致模型无法消解 PRD 中不同段落的表述差异",
+              "evidence": "检查 domain-knowledge.md 中是否有规则优先级或冲突解决策略记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-9b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 6 Step 1 一次性批量生成所有故事时，未对同一业务对象/同一字段在多个故事中的 AC 做交叉一致性检查，导致不同故事分别采用了 PRD 中不同的表述版本",
+              "evidence": "对同一业务对象/字段在多个故事中的 AC 做交叉比对，检查是否存在不同取值或矛盾规则"
+            },
+            {
+              "sub_type": "P3-9c",
+              "root_cause": "R2",
+              "description": "Phase 6 Step 1 初始批量生成的故事间内部一致，但在 Phase 6 Step 5 Review 澄清或 Phase 7 补全 Spec 时修改了某个故事的 AC/规则，但未同步更新关联故事中对应字段的描述",
+              "evidence": "对比 ai-trace 各轮次 requirement.md 版本，检查矛盾是否在某轮修改后引入"
+            },
+            {
+              "sub_type": "P3-9d",
+              "root_cause": "R4",
+              "description": "Phase 6 SubAgent F-N Spec Review 未做跨故事交叉一致性检查，Phase 8 SubAgent C 的 requirement-gate.md 交叉一致性检查未检出，business-review.md 规则一致性检查未发现矛盾",
+              "evidence": "复查 requirement-gate.md 交叉一致性检查项；检查 business-review.md 规则一致性检查记录；检查 story-review-summary.md 中是否有跨故事矛盾检查"
+            },
+            {
+              "sub_type": "P3-9e",
+              "root_cause": "R5",
+              "description": "PRD 原文本身存在多处描述不一致，模型未在 Phase 3 澄清环节就这些冲突向用户确认以哪条规则为准",
+              "evidence": "检查 clarification-log.md 中是否有针对该矛盾点的澄清记录及结论"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P3-10",
+          "label": "AC 不可验证",
+          "description": "requirement.md 第四章中 AC 措辞模糊，缺少明确的触发条件和预期结果，N4 无法据此设计确定性行为，下游编码 SubAgent 无法据此写出可测试的代码",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-10a",
+              "root_cause": "R1",
+              "description": "domain-knowledge.md 中缺少该业务场景的可验证 AC 编写惯例或模板（如\"金额类 AC 必须包含精确数值断言\"\"状态类 AC 必须包含前置状态断言\"），或已有知识但未被召回",
+              "evidence": "检查 domain-knowledge.md 中是否有该场景的 AC 编写惯例记录；若有，检查 ai-trace 是否召回"
+            },
+            {
+              "sub_type": "P3-10b",
+              "root_cause": "R3",
+              "description": "知识充分且已召回，但模型在 Phase 6 Step 1 将 Phase 4 关键规则表中的规则转化为 AC 时，未细化为\"当 X 时，系统 Y\"的可测试条件，而是停留在\"系统应支持 XX\"的描述性措辞",
+              "evidence": "检查每个 AC 的 Then/Expected 段是否包含明确触发条件和预期结果，是否可直接转化为断言"
+            },
+            {
+              "sub_type": "P3-10c",
+              "root_cause": "R2",
+              "description": "Phase 6 Step 1 生成时 ai-trace 中间推理结果中 AC 包含精确的预期结果（如\"返回 code=40001 且 message=缺货\"），但在写入 requirement.md 时被简化为模糊措辞",
+              "evidence": "对比 ai-trace 中间推理结果与 requirement.md 最终 AC 精度，检查精确描述是否在写入时被简化"
+            },
+            {
+              "sub_type": "P3-10d",
+              "root_cause": "R4",
+              "description": "Phase 8 SubAgent C 的 requirement-gate.md AC 可判定性检查标记 pass 但实际 AC 不可测试，或 Phase 6 SubAgent F-N Spec Review 未检查 AC 的可验证性",
+              "evidence": "复查 requirement-gate.md AC 可判定性检查项及判定结论；检查 story-review-summary.md 中是否有 AC 可验证性检查记录"
+            },
+            {
+              "sub_type": "P3-10e",
+              "root_cause": "R5",
+              "description": "PRD 未明确定义边界值或预期结果，模型未在 Phase 3 澄清环节就这些模糊点向用户提问确认，导致 AC 缺少可判定的精确约束",
+              "evidence": "检查 clarification-questions.md 中是否包含针对该 AC 边界值/预期结果的提问；检查 clarification-log.md 中用户回答是否写入 AC"
+            }
+          ],
+          "evidence_type_default": "ambiguity"
+        },
+        {
+          "id": "P3-11",
+          "label": "编码偏离需求",
+          "description": "AI 代码实现偏离了 requirement.md 的行为契约（用户故事和 AC），而非需求本身存在缺陷。需求质量无问题，但实际代码与需求不符。root_cause 通过 R1-R5 核验流程判定",
+          "root_cause_variants": [
+            {
+              "sub_type": "P3-11a",
+              "root_cause": "R1",
+              "description": "AI 缺少实现 requirement.md 用户故事/AC 所需的领域知识（如业务规则理解、行业惯例），导致代码偏离需求",
+              "evidence": "检查 domain-knowledge.md / prd-context.md 中是否有相关业务规则知识；对比用户故事/AC 与实际代码的实现差异"
+            },
+            {
+              "sub_type": "P3-11b",
+              "root_cause": "R2",
+              "description": "AI 理解了用户故事/AC 但在代码生成过程中上下文丢失，导致偏离",
+              "evidence": "对比 ai-trace 中对用户故事/AC 的理解记录与最终代码实现"
+            },
+            {
+              "sub_type": "P3-11c",
+              "root_cause": "R3",
+              "description": "模型自身生成代码时偏离了用户故事/AC（非知识缺失或上下文丢失，而是模型推理偏差）",
+              "evidence": "逐条对比用户故事/AC 的 Given/When/Then 与实际代码实现"
+            },
+            {
+              "sub_type": "P3-11d",
+              "root_cause": "R4",
+              "description": "代码审查（code-review.md）未发现代码与 requirement.md 用户故事/AC 的偏差",
+              "evidence": "复查 code-review.md 是否包含与 requirement.md 用户故事/AC 的逐条核对项"
+            },
+            {
+              "sub_type": "P3-11e",
+              "root_cause": "R5",
+              "description": "用户故事或 AC 描述模糊或存在歧义，导致 AI 理解偏差进而代码偏离",
+              "evidence": "检查 requirement.md 对应用户故事/AC 是否存在多种合理解释"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        }
+      ],
+      "decision_tree": {
+        "nodes": [
+          {
+            "node": 1,
+            "question": "In/Out Scope 划分与 current-state.md 能力缺口一致吗？（逐条比对 current-state.md §3 差异澄清点与 requirement.md In/Out Scope，检查是否有差异项被误判为 Reused Baseline）",
+            "yes_next": 2,
+            "no_type": "P3-1"
+          },
+          {
+            "node": 2,
+            "question": "核心操作流（业务流程图 Mermaid）中关键流程节点、分支或步骤是否完整且正确？（对比 PRD 操作流程描述与 Mermaid 流程图，检查异常分支/超时/回滚/降级是否展开）",
+            "yes_next": 3,
+            "no_type": "P3-2"
+          },
+          {
+            "node": 3,
+            "question": "状态机（状态转换 Mermaid）中关键状态、转换边或触发条件是否完整且正确？（对比 current-state.md §2 状态流转描述与 Mermaid 状态机，检查异常转换边/终态/回滚转换是否覆盖）",
+            "yes_next": 4,
+            "no_type": "P3-3"
+          },
+          {
+            "node": 4,
+            "question": "In Scope 功能点在 requirement.md 第四章中都有对应用户故事吗？（逐条比对 In Scope 列表与第四章 US-xx 列表，检查是否有 In Scope 项无对应故事）",
+            "yes_next": 5,
+            "no_type": "P3-4"
+          },
+          {
+            "node": 5,
+            "question": "故事描述（角色/目标/原因/dependency）与 PRD/current-state/clarification-log 一致吗？",
+            "yes_next": 6,
+            "no_type": "P3-5"
+          },
+          {
+            "node": 6,
+            "question": "故事的 AC 列表完整吗？（正常场景/边界/异常场景是否覆盖）",
+            "yes_next": 7,
+            "no_type": "P3-6"
+          },
+          {
+            "node": 7,
+            "question": "AC 内容与外部参照（PRD/current-state/clarification-log）一致吗？",
+            "yes_next": 8,
+            "no_type": "P3-7"
+          },
+          {
+            "node": 8,
+            "question": "故事描述的目标与 AC 验证的条件是否指向同一行为？（故事描述 A 目标但 AC 验证 B 条件）",
+            "yes_next": 9,
+            "no_type": "P3-8"
+          },
+          {
+            "node": 9,
+            "question": "不同故事对同一字段/规则的取值是否矛盾？（跨故事交叉一致性）",
+            "yes_next": 10,
+            "no_type": "P3-9"
+          },
+          {
+            "node": 10,
+            "question": "AC 措辞可测试吗？（是否有明确触发条件和预期结果，而非\"系统应支持XX\"）",
+            "yes_next": 11,
+            "no_type": "P3-10"
+          },
+          {
+            "node": 11,
+            "question": "AI 代码是否遵循了产物的行为契约？（对比 before-side 代码与 requirement.md 的用户故事和 AC，如偏离则为执行偏差）",
+            "yes_next": null,
+            "no_type": "P3-11"
+          }
+        ],
+        "entry_map": {
+          "existence": 4,
+          "correctness": 5,
+          "completeness": 6,
+          "execution_deviation": 11
+        }
+      }
+    },
+    {
+      "id": "P2",
+      "label": "N2 现状梳理层问题",
+      "stage": "N2",
+      "stage_name": "现状梳理",
+      "gate_file": "baseline-gate.md",
+      "allowed_root_causes": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "problem_types": [
+        {
+          "id": "P2-1",
+          "label": "需求GAP遗漏",
+          "description": "current-state.md §3 需求-代码 GAP 清单中，需求要求但系统尚不具备的能力缺口未被识别或记录不完整",
+          "root_cause_variants": [
+            {
+              "sub_type": "P2-1a",
+              "root_cause": "R1",
+              "description": "original-requirement.md 中需求功能点提取不完整（N1 传递损耗），或 domain-knowledge.md 缺少与该功能相关的领域知识，导致无法识别能力差距",
+              "evidence": "对比 PRD 原文功能点与 original-requirement.md 覆盖范围；检查 domain-knowledge.md 中相关领域知识是否存在"
+            },
+            {
+              "sub_type": "P2-1b",
+              "root_cause": "R3",
+              "description": "模型在需求-代码 GAP 比对时将尚未实现的能力误判为\"已具备\"，或未识别需求隐含的前置条件构成 GAP",
+              "evidence": "逐项对比 original-requirement.md 功能点与 scan-{n}.md Part A §3 GAP 清单；验证每个\"已具备\"判定的代码证据"
+            },
+            {
+              "sub_type": "P2-1c",
+              "root_cause": "R2",
+              "description": "scan-{n}.md Part A §3 中已识别的 GAP 条目在 Step 5 合并到 current-state.md §3 时被截断或遗漏",
+              "evidence": "对比各 scan-{n}.md Part A §3 GAP 条目集合与 current-state.md §3 最终清单"
+            },
+            {
+              "sub_type": "P2-1d",
+              "root_cause": "R4",
+              "description": "baseline-gate.md 需求覆盖度检查未发现 §3 GAP 清单与 PRD 功能点的差距，或研发确认环节未指出遗漏",
+              "evidence": "复查 baseline-gate.md 需求覆盖度检查项结论；检查研发确认记录中是否有 GAP 完整性反馈"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P2-2",
+          "label": "入口覆盖缺失",
+          "description": "current-state.md §1 入口清单中，需求涉及的核心业务入口（HTTP/RPC/MQ/Job/Async Callback/Internal）未被记录",
+          "root_cause_variants": [
+            {
+              "sub_type": "P2-2a",
+              "root_cause": "R1",
+              "description": ".wiki 知识库本身缺少该入口记录，或有记录但未被加载到 external-entry-index.md/domain-knowledge.md",
+              "evidence": "对比 .wiki 中入口相关文档与 external-entry-index.md 实际收录范围"
+            },
+            {
+              "sub_type": "P2-2b",
+              "root_cause": "R3",
+              "description": "入口线索已存在于知识或上下文中，但模型在代码扫描时未追踪到该入口的调用链",
+              "evidence": "对比 external-entry-index.md 入口线索与 scan-{n}.md 实际扫描到的入口"
+            },
+            {
+              "sub_type": "P2-2c",
+              "root_cause": "R2",
+              "description": "scan-{n}.md 中已记录该入口，但多轮汇总拼装到 current-state.md §1 时被截断或遗漏",
+              "evidence": "对比 scan-{n}.md Part A §1 与 current-state.md §1 入口清单"
+            },
+            {
+              "sub_type": "P2-2d",
+              "root_cause": "R4",
+              "description": "baseline-gate.md 入口与影响范围检查维度未发现 §1 入口清单的遗漏，或研发确认环节未指出入口不完整",
+              "evidence": "复查 baseline-gate.md 入口检查项结论；检查研发确认记录中是否有入口完整性反馈"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P2-3",
+          "label": "核心流程记录不完整",
+          "description": "current-state.md §2 中调用链断裂（动态代理/反射/SPI/RPC 处中断），或关键业务规则（校验规则/状态流转/幂等/配置开关分支）遗漏",
+          "root_cause_variants": [
+            {
+              "sub_type": "P2-3a",
+              "root_cause": "R1",
+              "description": ".wiki 中记录的 pitfall、配置开关分支、幂等约束等关键业务规则未被加载到 domain-knowledge.md，或知识库本身缺少相关记录",
+              "evidence": "对比 .wiki 原文中的 pitfalls/业务规则与 domain-knowledge.md 内容"
+            },
+            {
+              "sub_type": "P2-3b",
+              "root_cause": "R3",
+              "description": "模型在代码扫描时调用链追踪中断（动态代理/反射/SPI 处断裂、RPC 实现类未识别）或功能点提取不当导致扫描盲区",
+              "evidence": "检查 scan-{n}.md 调用链完整性；对比 PRD 与 original-requirement.md 覆盖表"
+            },
+            {
+              "sub_type": "P2-3c",
+              "root_cause": "R2",
+              "description": "scan-{n}.md 中已记录的流程细节在 Step 5 合并到 current-state.md §2 时被截断、压缩或表述漂移",
+              "evidence": "对比 scan-{n}.md Part A §2 与 current-state.md §2 对应内容"
+            },
+            {
+              "sub_type": "P2-3d",
+              "root_cause": "R4",
+              "description": "baseline-gate.md 结构完整性检查未发现 §2 调用链断裂或规则遗漏，或研发确认环节未指出流程与实际代码不一致",
+              "evidence": "复查 baseline-gate.md 结构完整性检查项；检查研发确认记录中是否有流程准确性反馈"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P2-4",
+          "label": "影响范围评估遗漏",
+          "description": "current-state.md §4 同链路波及/§5 数据流兼容中，改动点的影响范围未被完整识别（共用方法/数据消费方/跨模块影响）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P2-4a",
+              "root_cause": "R1",
+              "description": "知识库中缺少关于共用逻辑、数据表消费方关系的记录，SubAgent 扫描时无法获取波及范围的完整线索",
+              "evidence": "检查 .wiki/domain-knowledge.md 中是否有共用关系或数据流的记录"
+            },
+            {
+              "sub_type": "P2-4b",
+              "root_cause": "R3",
+              "description": "模型在代码扫描时未追踪到改动点被其他场景复用、数据表的其他读写者、或共用数据结构的跨模块影响",
+              "evidence": "检查 scan-{n}.md 中共用逻辑/数据流追踪结论；对比 evidence.md E3/E5 覆盖范围"
+            },
+            {
+              "sub_type": "P2-4c",
+              "root_cause": "R2",
+              "description": "scan-{n}.md 中已识别的波及关系或数据消费方在合并到 current-state.md §4/§5 时被遗漏",
+              "evidence": "对比 scan-{n}.md Part A §4/§5 与 current-state.md §4/§5"
+            },
+            {
+              "sub_type": "P2-4d",
+              "root_cause": "R4",
+              "description": "baseline-gate.md 入口与影响范围检查维度未发现 §4/§5 波及范围不完整，或研发确认环节未补充遗漏的共用关系",
+              "evidence": "复查 baseline-gate.md 影响范围检查项；检查研发确认记录中是否有波及范围反馈"
+            }
+          ],
+          "evidence_type_default": "omission"
+        },
+        {
+          "id": "P2-5",
+          "label": "行为差异判定错误",
+          "description": "current-state.md §6.1 中记录的需求-现状行为差异存在错误（虚假差异/缺少事实前提/真实差异未识别）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P2-5a",
+              "root_cause": "R1",
+              "description": "知识库中缺少相关业务规则或行为约束的记录，导致模型无法准确判断需求期望与系统现状之间的真实差异",
+              "evidence": "检查 domain-knowledge.md 中是否有与该差异相关的业务规则记录"
+            },
+            {
+              "sub_type": "P2-5b",
+              "root_cause": "R3",
+              "description": "模型对代码实际行为的推理错误（产生虚假差异），或未充分扫描导致真实的需求-现状冲突未被发现",
+              "evidence": "根据 evidence.md 源码证据验证 §6.1 中系统现状描述的准确性；对比需求期望与代码实际行为"
+            },
+            {
+              "sub_type": "P2-5c",
+              "root_cause": "R2",
+              "description": "scan-{n}.md 中已识别的行为差异在合并到 current-state.md §6 时被截断，或差异描述三要素（需求期望/系统现状/差异描述）不完整",
+              "evidence": "对比 scan-{n}.md 差异结论与 current-state.md §6.1 内容；检查证据回链完整性"
+            },
+            {
+              "sub_type": "P2-5d",
+              "root_cause": "R4",
+              "description": "baseline-gate.md 越界检查或证据隔离检查未发现 §6 中的虚假差异或缺少事实前提，或研发确认环节未指出差异判定不符",
+              "evidence": "复查 baseline-gate.md 越界/证据检查项；检查研发确认记录中是否有差异准确性反馈"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        }
+      ],
+      "decision_tree": {
+        "nodes": [
+          {
+            "node": 1,
+            "question": "PRD 功能点对应的系统能力缺口是否被识别？（current-state.md §3 需求-代码 GAP 清单是否完整）",
+            "yes_next": 2,
+            "no_type": "P2-1"
+          },
+          {
+            "node": 2,
+            "question": "需求涉及的核心入口（HTTP/RPC/MQ/Job/Async Callback/Internal）是否被记录？（current-state.md §1 入口清单是否完整）",
+            "yes_next": 3,
+            "no_type": "P2-2"
+          },
+          {
+            "node": 3,
+            "question": "调用链是否完整、关键业务规则是否记录？（动态代理/反射/SPI/RPC 处是否断裂，校验/状态流转/幂等/配置开关是否遗漏）",
+            "yes_next": 4,
+            "no_type": "P2-3"
+          },
+          {
+            "node": 4,
+            "question": "改动点的影响范围是否算全？（共用方法/数据消费方/跨模块影响是否覆盖）",
+            "yes_next": 5,
+            "no_type": "P2-4"
+          },
+          {
+            "node": 5,
+            "question": "需求-现状行为差异判定是否正确？（虚假差异/缺少事实前提/真实差异未识别是否存在）",
+            "yes_next": null,
+            "no_type": "P2-5"
+          }
+        ],
+        "entry_map": {
+          "existence": 1,
+          "correctness": 5,
+          "completeness": 3,
+          "execution_deviation": 1
+        }
+      }
+    },
+    {
+      "id": "P1",
+      "label": "N1 项目初始化层问题",
+      "stage": "N1",
+      "stage_name": "项目初始化",
+      "gate_file": null,
+      "allowed_root_causes": [
+        "R1"
+      ],
+      "_note": "N1 是全流程起点。执行损耗(R2)/模型推理(R3)/门禁漏检(R4)在此层不适用，澄清交互(R5)也不适用。",
+      "problem_types": [
+        {
+          "id": "P1-1",
+          "label": "领域识别错误",
+          "description": "根据 PRD 推断出的业务领域有误，导致后续所有阶段在错误的领域上下文中执行",
+          "root_cause_variants": [
+            {
+              "sub_type": "P1-1a",
+              "root_cause": "R1",
+              "description": "知识库中的领域划分边界不清晰（两个领域职责有重叠但未明确区分规则），或缺少目标领域的定义和关键词映射（新增业务领域尚未录入知识库）",
+              "evidence": "检查知识库领域划分是否覆盖了 PRD 涉及的业务场景；检查领域边界定义是否清晰无歧义；检查是否存在该领域的关键词映射记录"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P1-2",
+          "label": "领域仓库范围错误",
+          "description": "已正确识别需求涉及的业务领域，但代码结构.md 中的仓库范围配置有误（过期/模块职责描述不准确/遗漏关联仓库）",
+          "root_cause_variants": [
+            {
+              "sub_type": "P1-2a",
+              "root_cause": "R1",
+              "description": "代码结构.md 中记录的仓库信息与实际不一致（repo_name/remote_url 过期、模块职责描述不准确、缺少新增关联仓库条目）",
+              "evidence": "对比代码结构.md 中的仓库列表和模块描述与实际代码仓库结构，检查是否存在过期、缺失或描述不准确的条目"
+            }
+          ],
+          "evidence_type_default": "logic_error"
+        },
+        {
+          "id": "P1-3",
+          "label": "PRD 原始功能遗漏/有误",
+          "description": "PRD 原文本身缺少对该功能的描述或描述有误，属于 PRD 质量问题，导致下游全链路基于不完整或错误的需求执行",
+          "_note": "PRD 质量问题，无根因变体（非 AI 流程产生的问题）",
+          "root_cause_variants": [],
+          "evidence": "阅读 PRD 原文，判断是否有对应业务场景的明确且正确的描述；若 PRD 中完全未提及或描述有误，则归因于此",
+          "evidence_type_default": "prd_quality"
+        }
+      ],
+      "decision_tree": {
+        "nodes": [
+          {
+            "node": 1,
+            "question": "根据 PRD 推断的业务领域是否正确？（领域划分边界是否清晰，关键词映射是否准确）",
+            "yes_next": 2,
+            "no_type": "P1-1"
+          },
+          {
+            "node": 2,
+            "question": "代码结构.md 中的仓库范围是否正确？（repo_name/remote_url 是否过期，模块职责描述是否准确，关联仓库是否遗漏）",
+            "yes_next": 3,
+            "no_type": "P1-2"
+          },
+          {
+            "node": 3,
+            "question": "PRD 原文是否包含对该功能的明确且正确的描述？（PRD 是否遗漏或描述有误）",
+            "yes_next": null,
+            "no_type": "P1-3",
+            "no_root_cause": null,
+            "no_skip_rootcause": true
+          }
+        ],
+        "entry_map": {
+          "existence": 3,
+          "correctness": 1,
+          "completeness": 2,
+          "execution_deviation": 1
+        }
+      }
+    }
+  ]
+}

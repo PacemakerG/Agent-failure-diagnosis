@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="310" viewBox="0 0 900 310" role="img" aria-labelledby="title desc">
+  <title id="title">Skill 诊断与 Workflow 归因闭环</title>
+  <desc id="desc">真实 Session 的问题先进行 Skill 局部诊断，再进行跨阶段 Workflow 归因，专家确认后定向修改，并通过 Golden 和 Hard Set 验收。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#64748b"/></marker>
+  </defs>
+  <g fill="none" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M190 75 H235"/><path d="M405 75 H450"/><path d="M620 75 H665"/><path d="M750 115 V185"/><path d="M665 225 H620"/><path d="M450 225 H405"/>
+  </g>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" fill="#1f2937" text-anchor="middle">
+    <rect x="20" y="35" width="170" height="80" rx="12" fill="#f8cecc" stroke="#b85450" stroke-width="2"/><text x="105" y="67"><tspan x="105">真实 Session</tspan><tspan x="105" dy="23">产生问题</tspan></text>
+    <rect x="235" y="35" width="170" height="80" rx="12" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/><text x="320" y="81">Skill 局部诊断</text>
+    <rect x="450" y="35" width="170" height="80" rx="12" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/><text x="535" y="67"><tspan x="535">Workflow</tspan><tspan x="535" dy="23">跨阶段归因</tspan></text>
+    <rect x="665" y="35" width="170" height="80" rx="12" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/><text x="750" y="67"><tspan x="750">专家确认</tspan><tspan x="750" dy="23">真实根因</tspan></text>
+    <rect x="665" y="185" width="170" height="80" rx="12" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/><text x="750" y="214"><tspan x="750">定向修改 Skill、知识库</tspan><tspan x="750" dy="22">Gate 或 Workflow</tspan></text>
+    <rect x="450" y="185" width="170" height="80" rx="12" fill="#f5f5f5" stroke="#666666" stroke-width="2"/><text x="535" y="217"><tspan x="535">Golden / Hard Set</tspan><tspan x="535" dy="23">离线评测</tspan></text>
+    <rect x="235" y="185" width="170" height="80" rx="12" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/><text x="320" y="217"><tspan x="320">人工接受后进入</tspan><tspan x="320" dy="23">下一轮真实运行</tspan></text>
+  </g>
+</svg>

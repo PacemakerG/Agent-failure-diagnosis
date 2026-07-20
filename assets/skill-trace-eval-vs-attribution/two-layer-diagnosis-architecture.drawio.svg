@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1150" height="340" viewBox="0 0 1150 340" role="img" aria-labelledby="title desc">
+  <title id="title">Skill 评测层与 Workflow 归因层</title>
+  <desc id="desc">Skill 评测层从完整 Session 中切分窗口并产生局部 Finding，Workflow 归因层结合完整事件图和局部证据生成全流程归因报告并交由专家确认。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect x="1" y="1" width="1148" height="158" rx="8" fill="#e8f4f8" stroke="#6c8ebf" stroke-width="2"/>
+  <rect x="1" y="171" width="1148" height="158" rx="8" fill="#e8f5e9" stroke="#82b366" stroke-width="2"/>
+  <line x1="110" y1="1" x2="110" y2="159" stroke="#6c8ebf" stroke-width="2"/><line x1="110" y1="171" x2="110" y2="329" stroke="#82b366" stroke-width="2"/>
+  <g fill="none" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M280 80 H320"/><path d="M460 80 H500"/><path d="M640 80 H680"/>
+    <path d="M280 250 H320"/><path d="M460 250 H500"/><path d="M640 250 H680"/><path d="M820 250 H860"/>
+    <path d="M210 120 V215"/><path d="M750 120 V180 H390 V215" stroke-dasharray="7 6"/>
+  </g>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" fill="#1f2937" text-anchor="middle">
+    <text x="55" y="74" font-size="15" font-weight="700"><tspan x="55">Skill</tspan><tspan x="55" dy="22">评测层</tspan></text>
+    <text x="55" y="242" font-size="15" font-weight="700"><tspan x="55">Workflow</tspan><tspan x="55" dy="22">归因层</tspan></text>
+    <g font-size="13.5">
+      <rect x="140" y="40" width="140" height="80" rx="10" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/><text x="210" y="72"><tspan x="210">完整 Session</tspan><tspan x="210" dy="22">与运行时规则</tspan></text>
+      <rect x="320" y="40" width="140" height="80" rx="10" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/><text x="390" y="86">Skill 窗口切分</text>
+      <rect x="500" y="40" width="140" height="80" rx="10" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/><text x="570" y="72"><tspan x="570">规格提取</tspan><tspan x="570" dy="22">与 Debugger</tspan></text>
+      <path d="M680 40 H820 V108 Q805 100 790 110 Q775 120 760 110 Q745 100 730 110 Q705 121 680 110 Z" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/><text x="750" y="84">局部 Skill Finding</text>
+      <rect x="140" y="210" width="140" height="80" rx="10" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/><text x="210" y="256">Event Normalizer</text>
+      <rect x="320" y="210" width="140" height="80" rx="10" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/><text x="390" y="240"><tspan x="390">Action / Event /</tspan><tspan x="390" dy="22">Artifact Graph</tspan></text>
+      <rect x="500" y="210" width="140" height="80" rx="10" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/><text x="570" y="240"><tspan x="570">传播分析</tspan><tspan x="570" dy="22">与 Gate 责任</tspan></text>
+      <path d="M680 210 H820 V278 Q805 270 790 280 Q775 290 760 280 Q745 270 730 280 Q705 291 680 280 Z" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/><text x="750" y="254">全流程归因报告</text>
+      <rect x="860" y="210" width="140" height="80" rx="10" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/><text x="930" y="240"><tspan x="930">领域专家</tspan><tspan x="930" dy="22">确认 / 纠正</tspan></text>
+      <text x="645" y="180" fill="#64748b" font-size="12">局部证据</text>
+    </g>
+  </g>
+</svg>

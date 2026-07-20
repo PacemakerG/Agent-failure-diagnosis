@@ -1,0 +1,26 @@
+<mxGraphModel adaptiveColors="auto" dx="1600" dy="900" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1200" pageHeight="500">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="lane1" value="Skill 评测层" style="swimlane;horizontal=0;startSize=110;fillColor=#e8f4f8;strokeColor=#6c8ebf;fontColor=#1f2937;fontStyle=1;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1150" height="150" as="geometry"/></mxCell>
+    <mxCell id="t1" value="完整 Session&lt;br&gt;与运行时规则" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane1"><mxGeometry x="120" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="t2" value="Skill 窗口切分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane1"><mxGeometry x="300" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="t3" value="规格提取&lt;br&gt;与 Debugger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane1"><mxGeometry x="480" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="t4" value="局部 Skill Finding" style="shape=mxgraph.flowchart.document;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane1"><mxGeometry x="660" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="lane2" value="Workflow 归因层" style="swimlane;horizontal=0;startSize=110;fillColor=#e8f5e9;strokeColor=#82b366;fontColor=#1f2937;fontStyle=1;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="150" width="1150" height="150" as="geometry"/></mxCell>
+    <mxCell id="b1" value="Event Normalizer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane2"><mxGeometry x="120" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="b2" value="Action / Event /&lt;br&gt;Artifact Graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#1f2937;fontSize=11;" vertex="1" parent="lane2"><mxGeometry x="300" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="b3" value="传播分析&lt;br&gt;与 Gate 责任" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane2"><mxGeometry x="480" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="b4" value="全流程归因报告" style="shape=mxgraph.flowchart.document;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane2"><mxGeometry x="660" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="b5" value="领域专家&lt;br&gt;确认 / 纠正" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1f2937;fontSize=12;" vertex="1" parent="lane2"><mxGeometry x="840" y="45" width="140" height="60" as="geometry"/></mxCell>
+    <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="t1" target="t2" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="t2" target="t3" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="t3" target="t4" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="t1" target="b1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="b1" target="b2" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e6" value="局部证据" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;dashed=1;fontSize=11;" edge="1" source="t4" target="b2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="b2" target="b3" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="b3" target="b4" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=classic;" edge="1" source="b4" target="b5" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+  </root>
+</mxGraphModel>

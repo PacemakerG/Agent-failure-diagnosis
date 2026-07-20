@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="180" viewBox="0 0 1000 180" role="img" aria-labelledby="title desc">
+  <title id="title">Skill 真实 Trace 评测流程</title>
+  <desc id="desc">完整真实 Session 上报后，提取目标 Skill 窗口，生成 Skill 规格，由 Debugger 对照 Trace 输出评分、证据、候选根因和建议。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#64748b"/></marker>
+  </defs>
+  <g fill="none" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M190 90 H225"/><path d="M385 90 H420"/><path d="M580 90 H615"/><path d="M775 90 H810"/>
+  </g>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" fill="#1f2937" text-anchor="middle">
+    <path d="M30 55 Q110 40 190 55 V125 Q110 140 30 125 Z" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="110" y="82"><tspan x="110">完整真实 Session</tspan><tspan x="110" dy="23">Stop hook 上报</tspan></text>
+    <rect x="225" y="50" width="160" height="80" rx="12" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/>
+    <text x="305" y="82"><tspan x="305">提取目标 Skill</tspan><tspan x="305" dy="23">执行窗口</tspan></text>
+    <path d="M420 50 H580 V118 Q565 110 550 120 Q535 130 520 120 Q505 110 490 120 Q475 130 460 120 Q440 108 420 120 Z" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+    <text x="500" y="79"><tspan x="500">Observability</tspan><tspan x="500" dy="23">生成 skill_spec</tspan></text>
+    <rect x="615" y="50" width="160" height="80" rx="12" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/>
+    <text x="695" y="82"><tspan x="695">Debugger 对照 Trace</tspan><tspan x="695" dy="23">查找规则偏离</tspan></text>
+    <path d="M810 50 H970 V118 Q955 110 940 120 Q925 130 910 120 Q895 110 880 120 Q865 130 850 120 Q830 108 810 120 Z" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+    <text x="890" y="79"><tspan x="890">评分、证据</tspan><tspan x="890" dy="22">候选根因与建议</tspan></text>
+  </g>
+</svg>

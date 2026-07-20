@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="330" viewBox="0 0 1100 330" role="img" aria-labelledby="title desc">
+  <title id="title">Workflow 优化数据飞轮</title>
+  <desc id="desc">真实运行、诊断、专家确认、数据沉淀、定向修改、离线评测、指标门禁、人工接受和下一轮运行组成的闭环。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M195 75 H230"/>
+    <path d="M405 75 H440"/>
+    <path d="M615 75 H650"/>
+    <path d="M825 75 H860"/>
+    <path d="M950 115 V185"/>
+    <path d="M860 225 H825"/>
+    <path d="M650 225 H615"/>
+    <path d="M440 225 H405"/>
+    <path d="M230 225 H80 V75 H20" stroke-dasharray="7 6"/>
+  </g>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" fill="#1f2937" text-anchor="middle">
+    <rect x="20" y="35" width="175" height="80" rx="12" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="107.5" y="70"><tspan x="107.5">真实 Workflow</tspan><tspan x="107.5" dy="23">运行</tspan></text>
+    <rect x="230" y="35" width="175" height="80" rx="12" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="317.5" y="70"><tspan x="317.5">自动诊断和</tspan><tspan x="317.5" dy="23">可视化复盘</tspan></text>
+    <rect x="440" y="35" width="175" height="80" rx="12" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/>
+    <text x="527.5" y="70"><tspan x="527.5">领域专家</tspan><tspan x="527.5" dy="23">确认 / 纠正</tspan></text>
+    <path d="M650 35 H825 V103 Q810 95 795 105 Q780 115 765 105 Q750 95 735 105 Q720 115 705 105 Q690 95 675 105 Q662 112 650 107 Z" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+    <text x="737.5" y="70"><tspan x="737.5">生成真实标注数据</tspan><tspan x="737.5" dy="23">和 Hard Case</tspan></text>
+    <rect x="860" y="35" width="220" height="80" rx="12" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/>
+    <text x="970" y="65"><tspan x="970">定向修改 Skill / Prompt</tspan><tspan x="970" dy="22">知识库 / Gate / Workflow</tspan></text>
+    <rect x="860" y="185" width="220" height="80" rx="12" fill="#f5f5f5" stroke="#666666" stroke-width="2"/>
+    <text x="970" y="220"><tspan x="970">运行 Golden / Hard Set</tspan><tspan x="970" dy="23">离线评测</tspan></text>
+    <path d="M737.5 175 L825 225 L737.5 275 L650 225 Z" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/>
+    <text x="737.5" y="220"><tspan x="737.5">关键指标通过</tspan><tspan x="737.5" dy="22">且没有回归</tspan></text>
+    <rect x="440" y="185" width="175" height="80" rx="12" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+    <text x="527.5" y="220"><tspan x="527.5">人工接受</tspan><tspan x="527.5" dy="23">流程变更</tspan></text>
+    <rect x="230" y="185" width="175" height="80" rx="12" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+    <text x="317.5" y="220"><tspan x="317.5">新版本继续产生</tspan><tspan x="317.5" dy="23">真实运行数据</tspan></text>
+    <text x="120" y="215" fill="#64748b" font-size="13">下一轮</text>
+  </g>
+</svg>
